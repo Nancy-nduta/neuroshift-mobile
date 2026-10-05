@@ -14,3 +14,7 @@
 - Timestamp: 2026-10-05T14:53:29+00:00
 - Verification status: PASSED
 
+### Milestone 005: chore(android): configure main activity and kotlin gradle wrapper
+- Timestamp: 2026-10-05T18:15:05+00:00
+- Verification status: PASSED
+
