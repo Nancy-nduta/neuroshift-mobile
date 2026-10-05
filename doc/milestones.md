@@ -2,3 +2,7 @@
 - Timestamp: 2026-10-05T04:48:41+00:00
 - Verification status: PASSED
 
+### Milestone 002: chore(deps): lock dependencies for state management, bluetooth le, and firebase
+- Timestamp: 2026-10-05T08:10:17+00:00
+- Verification status: PASSED
+
