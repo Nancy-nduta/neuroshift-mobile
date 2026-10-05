@@ -10,3 +10,7 @@
 - Timestamp: 2026-10-05T11:31:53+00:00
 - Verification status: PASSED
 
+### Milestone 004: chore(android): configure manifest permissions for bluetooth scan, connect, and fine location
+- Timestamp: 2026-10-05T14:53:29+00:00
+- Verification status: PASSED
+
