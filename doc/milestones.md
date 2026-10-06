@@ -34,3 +34,7 @@
 - Timestamp: 2026-10-06T07:41:29+00:00
 - Verification status: PASSED
 
+### Milestone 010: feat(core): initialize flutter application entrypoint and bindings
+- Timestamp: 2026-10-06T11:03:05+00:00
+- Verification status: PASSED
+
