@@ -26,3 +26,7 @@
 - Timestamp: 2026-10-06T00:58:17+00:00
 - Verification status: PASSED
 
+### Milestone 008: docs: create project readme with system overview and hardware compatibility
+- Timestamp: 2026-10-06T04:19:53+00:00
+- Verification status: PASSED
+
