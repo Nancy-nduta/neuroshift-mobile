@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "neuroshift-dev",
+    "dev": "neuroshift-dev"
+  }
+}
