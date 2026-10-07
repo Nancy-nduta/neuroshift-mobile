@@ -50,3 +50,7 @@
 - Timestamp: 2026-10-06T21:07:53+00:00
 - Verification status: PASSED
 
+### Milestone 014: feat(core): add global application constants and asset paths
+- Timestamp: 2026-10-07T00:29:29+00:00
+- Verification status: PASSED
+
