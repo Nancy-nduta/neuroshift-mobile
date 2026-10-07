@@ -66,3 +66,7 @@
 - Timestamp: 2026-10-07T10:34:17+00:00
 - Verification status: PASSED
 
+### Milestone 018: feat(models): create signal reading entity for 4-channel eeg and ppg streams
+- Timestamp: 2026-10-07T13:55:53+00:00
+- Verification status: PASSED
+
