@@ -102,3 +102,7 @@
 - Timestamp: 2026-10-08T16:48:41+00:00
 - Verification status: PASSED
 
+### Milestone 027: feat(ble): add 4-channel eeg packet parser for tp9, af7, af8, and tp10
+- Timestamp: 2026-10-08T20:10:17+00:00
+- Verification status: PASSED
+
