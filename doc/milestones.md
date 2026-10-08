@@ -82,3 +82,7 @@
 - Timestamp: 2026-10-08T00:00:41+00:00
 - Verification status: PASSED
 
+### Milestone 022: feat(ble): define muse gatt service and characteristic uuid specifications
+- Timestamp: 2026-10-08T03:22:17+00:00
+- Verification status: PASSED
+
