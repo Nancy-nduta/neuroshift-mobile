@@ -94,3 +94,7 @@
 - Timestamp: 2026-10-08T10:05:29+00:00
 - Verification status: PASSED
 
+### Milestone 025: feat(ble): add muse headband device discovery and rssi filtering
+- Timestamp: 2026-10-08T13:27:05+00:00
+- Verification status: PASSED
+
