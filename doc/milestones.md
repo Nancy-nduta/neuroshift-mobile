@@ -106,3 +106,7 @@
 - Timestamp: 2026-10-08T20:10:17+00:00
 - Verification status: PASSED
 
+### Milestone 028: feat(ble): implement 12-bit delta decompression for muse eeg packets
+- Timestamp: 2026-10-08T23:31:53+00:00
+- Verification status: PASSED
+
