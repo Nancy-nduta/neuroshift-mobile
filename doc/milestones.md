@@ -90,3 +90,7 @@
 - Timestamp: 2026-10-08T06:43:53+00:00
 - Verification status: PASSED
 
+### Milestone 024: feat(ble): initialize reactive bluetooth service singleton
+- Timestamp: 2026-10-08T10:05:29+00:00
+- Verification status: PASSED
+
