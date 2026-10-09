@@ -110,3 +110,7 @@
 - Timestamp: 2026-10-08T23:31:53+00:00
 - Verification status: PASSED
 
+### Milestone 029: feat(ble): add ring buffer for continuous eeg sample acquisition
+- Timestamp: 2026-10-09T02:53:29+00:00
+- Verification status: PASSED
+
