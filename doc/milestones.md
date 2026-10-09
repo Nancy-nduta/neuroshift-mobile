@@ -118,3 +118,7 @@
 - Timestamp: 2026-10-09T06:15:05+00:00
 - Verification status: PASSED
 
+### Milestone 031: feat(ble): add 3-axis accelerometer and gyro stream parsing for stillness tracking
+- Timestamp: 2026-10-09T09:36:41+00:00
+- Verification status: PASSED
+
