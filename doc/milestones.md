@@ -134,3 +134,7 @@
 - Timestamp: 2026-10-09T19:41:29+00:00
 - Verification status: PASSED
 
+### Milestone 035: feat(dsp): add band power integration for delta (0.5-4hz) and theta (4-8hz)
+- Timestamp: 2026-10-09T23:03:05+00:00
+- Verification status: PASSED
+
