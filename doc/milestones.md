@@ -122,3 +122,7 @@
 - Timestamp: 2026-10-09T09:36:41+00:00
 - Verification status: PASSED
 
+### Milestone 032: feat(ble): implement headband battery telemetry parsing and broadcast
+- Timestamp: 2026-10-09T12:58:17+00:00
+- Verification status: PASSED
+
