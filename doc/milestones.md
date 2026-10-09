@@ -130,3 +130,7 @@
 - Timestamp: 2026-10-09T16:19:53+00:00
 - Verification status: PASSED
 
+### Milestone 034: feat(dsp): implement power spectral density calculation across frequency bins
+- Timestamp: 2026-10-09T19:41:29+00:00
+- Verification status: PASSED
+
