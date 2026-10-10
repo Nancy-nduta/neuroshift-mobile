@@ -158,3 +158,7 @@
 - Timestamp: 2026-10-10T15:51:05+00:00
 - Verification status: PASSED
 
+### Milestone 041: feat(dsp): implement 5-sensor signal quality index (sqi) computation
+- Timestamp: 2026-10-10T19:12:41+00:00
+- Verification status: PASSED
+
