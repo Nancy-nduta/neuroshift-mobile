@@ -162,3 +162,7 @@
 - Timestamp: 2026-10-10T19:12:41+00:00
 - Verification status: PASSED
 
+### Milestone 042: feat(dsp): implement ppg bandpass filter (0.5-4.0hz) for pulse wave isolation
+- Timestamp: 2026-10-10T22:34:17+00:00
+- Verification status: PASSED
+
