@@ -154,3 +154,7 @@
 - Timestamp: 2026-10-10T12:29:29+00:00
 - Verification status: PASSED
 
+### Milestone 040: feat(dsp): add eeg artifact rejection for ocular blinks and myogenic noise
+- Timestamp: 2026-10-10T15:51:05+00:00
+- Verification status: PASSED
+
