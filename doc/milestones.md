@@ -138,3 +138,7 @@
 - Timestamp: 2026-10-09T23:03:05+00:00
 - Verification status: PASSED
 
+### Milestone 036: feat(dsp): add band power integration for alpha (8-12hz) and beta (13-30hz)
+- Timestamp: 2026-10-10T02:24:41+00:00
+- Verification status: PASSED
+
