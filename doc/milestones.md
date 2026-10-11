@@ -178,3 +178,7 @@
 - Timestamp: 2026-10-11T08:39:05+00:00
 - Verification status: PASSED
 
+### Milestone 046: test(dsp): add unit tests for synthetic 10hz alpha power calculation
+- Timestamp: 2026-10-11T12:00:41+00:00
+- Verification status: PASSED
+
