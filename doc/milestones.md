@@ -170,3 +170,7 @@
 - Timestamp: 2026-10-11T01:55:53+00:00
 - Verification status: PASSED
 
+### Milestone 044: feat(dsp): implement inter-beat interval (ibi) extraction and outlier filtering
+- Timestamp: 2026-10-11T05:17:29+00:00
+- Verification status: PASSED
+
