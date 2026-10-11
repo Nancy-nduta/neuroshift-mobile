@@ -166,3 +166,7 @@
 - Timestamp: 2026-10-10T22:34:17+00:00
 - Verification status: PASSED
 
+### Milestone 043: feat(dsp): implement adaptive peak detection for heart rate calculation
+- Timestamp: 2026-10-11T01:55:53+00:00
+- Verification status: PASSED
+
