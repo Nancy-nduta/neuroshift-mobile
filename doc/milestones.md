@@ -182,3 +182,7 @@
 - Timestamp: 2026-10-11T12:00:41+00:00
 - Verification status: PASSED
 
+### Milestone 047: test(dsp): add unit test for calm mind state classification thresholding
+- Timestamp: 2026-10-11T15:22:17+00:00
+- Verification status: PASSED
+
