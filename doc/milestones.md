@@ -174,3 +174,7 @@
 - Timestamp: 2026-10-11T05:17:29+00:00
 - Verification status: PASSED
 
+### Milestone 045: feat(dsp): implement root mean square of successive differences (rmssd) for hrv
+- Timestamp: 2026-10-11T08:39:05+00:00
+- Verification status: PASSED
+
