@@ -186,3 +186,7 @@
 - Timestamp: 2026-10-11T15:22:17+00:00
 - Verification status: PASSED
 
+### Milestone 048: test(dsp): add unit test for ppg pulse peak detector and bpm estimation
+- Timestamp: 2026-10-11T18:43:53+00:00
+- Verification status: PASSED
+
