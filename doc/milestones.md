@@ -194,3 +194,7 @@
 - Timestamp: 2026-10-11T22:05:29+00:00
 - Verification status: PASSED
 
+### Milestone 050: feat(state): implement headband connection state notifier
+- Timestamp: 2026-10-12T01:27:05+00:00
+- Verification status: PASSED
+
