@@ -218,3 +218,7 @@
 - Timestamp: 2026-10-12T18:15:05+00:00
 - Verification status: PASSED
 
+### Milestone 056: feat(auth): add therapist account role registration workflow
+- Timestamp: 2026-10-12T21:36:41+00:00
+- Verification status: PASSED
+
