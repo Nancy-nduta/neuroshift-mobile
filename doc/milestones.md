@@ -242,3 +242,7 @@
 - Timestamp: 2026-10-13T14:24:41+00:00
 - Verification status: PASSED
 
+### Milestone 062: feat(meditate): add how-it-works card explaining eeg biofeedback mechanisms
+- Timestamp: 2026-10-13T17:46:17+00:00
+- Verification status: PASSED
+
