@@ -234,3 +234,7 @@
 - Timestamp: 2026-10-13T07:41:29+00:00
 - Verification status: PASSED
 
+### Milestone 060: feat(connect): add device signal diagnostic preview with raw packet inspection
+- Timestamp: 2026-10-13T11:03:05+00:00
+- Verification status: PASSED
+
