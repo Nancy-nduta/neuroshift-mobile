@@ -274,3 +274,7 @@
 - Timestamp: 2026-10-14T17:17:29+00:00
 - Verification status: PASSED
 
+### Milestone 070: feat(resources): define resource item model for therapeutic audio practices
+- Timestamp: 2026-10-14T20:39:05+00:00
+- Verification status: PASSED
+
