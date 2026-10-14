@@ -270,3 +270,7 @@
 - Timestamp: 2026-10-14T13:55:53+00:00
 - Verification status: PASSED
 
+### Milestone 069: feat(meditate): create session results screen displaying calm points and recoveries
+- Timestamp: 2026-10-14T17:17:29+00:00
+- Verification status: PASSED
+
