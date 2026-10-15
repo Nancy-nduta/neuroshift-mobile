@@ -302,3 +302,7 @@
 - Timestamp: 2026-10-15T16:48:41+00:00
 - Verification status: PASSED
 
+### Milestone 077: feat(resources): create in-practice screen with live eeg wave simulation overlay
+- Timestamp: 2026-10-15T20:10:17+00:00
+- Verification status: PASSED
+
