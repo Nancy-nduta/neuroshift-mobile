@@ -290,3 +290,7 @@
 - Timestamp: 2026-10-15T06:43:53+00:00
 - Verification status: PASSED
 
+### Milestone 074: feat(resources): add white noise and pink noise acoustic masking tracks
+- Timestamp: 2026-10-15T10:05:29+00:00
+- Verification status: PASSED
+
