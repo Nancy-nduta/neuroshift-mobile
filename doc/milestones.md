@@ -298,3 +298,7 @@
 - Timestamp: 2026-10-15T13:27:05+00:00
 - Verification status: PASSED
 
+### Milestone 076: feat(resources): implement separate resource detail screen with muse pairing prompt
+- Timestamp: 2026-10-15T16:48:41+00:00
+- Verification status: PASSED
+
