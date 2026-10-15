@@ -306,3 +306,7 @@
 - Timestamp: 2026-10-15T20:10:17+00:00
 - Verification status: PASSED
 
+### Milestone 078: feat(resources): define resource evaluation entity for session scoring
+- Timestamp: 2026-10-15T23:31:53+00:00
+- Verification status: PASSED
+
