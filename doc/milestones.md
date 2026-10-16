@@ -326,3 +326,7 @@
 - Timestamp: 2026-10-16T12:58:17+00:00
 - Verification status: PASSED
 
+### Milestone 083: feat(rl): add epsilon-greedy exploration and upper confidence bound ranking
+- Timestamp: 2026-10-16T16:19:53+00:00
+- Verification status: PASSED
+
