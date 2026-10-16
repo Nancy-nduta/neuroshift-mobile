@@ -334,3 +334,7 @@
 - Timestamp: 2026-10-16T19:41:29+00:00
 - Verification status: PASSED
 
+### Milestone 085: feat(history): create historical session log screen with timeline view
+- Timestamp: 2026-10-16T23:03:05+00:00
+- Verification status: PASSED
+
