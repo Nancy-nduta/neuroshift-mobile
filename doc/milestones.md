@@ -330,3 +330,7 @@
 - Timestamp: 2026-10-16T16:19:53+00:00
 - Verification status: PASSED
 
+### Milestone 084: feat(resources): implement dynamic resource list reordering based on rl scores
+- Timestamp: 2026-10-16T19:41:29+00:00
+- Verification status: PASSED
+
