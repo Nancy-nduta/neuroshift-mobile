@@ -322,3 +322,7 @@
 - Timestamp: 2026-10-16T09:36:41+00:00
 - Verification status: PASSED
 
+### Milestone 082: feat(rl): implement reward function combining delta-calm and user feedback
+- Timestamp: 2026-10-16T12:58:17+00:00
+- Verification status: PASSED
+
