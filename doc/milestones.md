@@ -338,3 +338,7 @@
 - Timestamp: 2026-10-16T23:03:05+00:00
 - Verification status: PASSED
 
+### Milestone 086: feat(profile): implement user profile screen with streak and usage statistics
+- Timestamp: 2026-10-17T02:24:41+00:00
+- Verification status: PASSED
+
