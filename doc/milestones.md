@@ -362,3 +362,7 @@
 - Timestamp: 2026-10-17T19:12:41+00:00
 - Verification status: PASSED
 
+### Milestone 092: feat(therapist): define therapist profile and message models
+- Timestamp: 2026-10-17T22:34:17+00:00
+- Verification status: PASSED
+
