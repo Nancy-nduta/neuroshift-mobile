@@ -358,3 +358,7 @@
 - Timestamp: 2026-10-17T15:51:05+00:00
 - Verification status: PASSED
 
+### Milestone 091: feat(therapist): define therapist access grant model with time-bound scopes
+- Timestamp: 2026-10-17T19:12:41+00:00
+- Verification status: PASSED
+
