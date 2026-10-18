@@ -374,3 +374,7 @@
 - Timestamp: 2026-10-18T05:17:29+00:00
 - Verification status: PASSED
 
+### Milestone 095: feat(therapist): create dedicated clinical workspace dashboard for therapists
+- Timestamp: 2026-10-18T08:39:05+00:00
+- Verification status: PASSED
+
