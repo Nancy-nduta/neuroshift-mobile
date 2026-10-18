@@ -378,3 +378,7 @@
 - Timestamp: 2026-10-18T08:39:05+00:00
 - Verification status: PASSED
 
+### Milestone 096: feat(therapist): create patient detail screen with eeg telemetry insights
+- Timestamp: 2026-10-18T12:00:41+00:00
+- Verification status: PASSED
+
