@@ -366,3 +366,7 @@
 - Timestamp: 2026-10-17T22:34:17+00:00
 - Verification status: PASSED
 
+### Milestone 093: feat(therapist): define clinical prescription model with biofeedback tracking
+- Timestamp: 2026-10-18T01:55:53+00:00
+- Verification status: PASSED
+
