@@ -370,3 +370,7 @@
 - Timestamp: 2026-10-18T01:55:53+00:00
 - Verification status: PASSED
 
+### Milestone 094: feat(therapist): implement client-side therapist email invitation workflow
+- Timestamp: 2026-10-18T05:17:29+00:00
+- Verification status: PASSED
+
