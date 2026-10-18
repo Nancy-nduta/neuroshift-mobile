@@ -1,0 +1,1513 @@
+rules_version = '2';
+
+// ===============================================================
+// NeuroShift — Cloud Firestore Security Rules
+// ===============================================================
+//
+// Collection 1: users/{userId}
+// Document ID: {userId} (Must match request.auth.uid)
+// Fields:
+//   - uid: string (required, 1-128 chars, immutable, matches userId and auth.uid)
+//   - email: string (required, 1-254 chars, valid email format)
+//   - createdAt: timestamp or ISO string (required, immutable)
+//   - pairedDevices: list of strings (required, max 20 items, defaults to [])
+//   - baselineRestingHr: number or null (optional/nullable, 0-300 BPM)
+//   - baselineHrvRmssd: number or null (optional/nullable, 0-500 ms)
+//   - displayName: string or null (optional/nullable, max 100 chars)
+//   - hasCompletedOnboarding: bool (required, boolean)
+//   - totalMeditationMinutes: int or null (optional/nullable, >= 0)
+//   - streakDays: int or null (optional/nullable, >= 0)
+//   - pairedHeadbandId: string or null (optional/nullable, max 128 chars)
+//
+// Collection 2: consent_records/{userId}
+// Document ID: {userId} (Must match request.auth.uid)
+// Fields:
+//   - userId: string (required, 1-128 chars, immutable, matches userId and auth.uid)
+//   - policyVersion: string (required, 1-20 chars, e.g. "1.0.0")
+//   - status: string (required, in ['granted', 'withdrawn', 'partial'])
+//   - moodTrackingConsent: bool (required)
+//   - physiologicalDataConsent: bool (required)
+//   - adaptiveRecommendationsConsent: bool (required)
+//   - anonymizedResearchConsent: bool (required)
+//   - consentedAt: timestamp or ISO string (required, immutable)
+//   - lastUpdatedAt: timestamp or ISO string (required)
+//   - withdrawnAt: timestamp or ISO string or null (optional/nullable)
+//
+// Collection 3: mood_checkins/{checkinId}
+// Document ID: {checkinId}
+// Fields:
+//   - id: string (required, matches checkinId, length 1-128, immutable)
+//   - userId: string (required, matches auth.uid, length 1-128, immutable)
+//   - timestamp: timestamp or ISO string (required, immutable)
+//   - valence: int (required, 1 to 5)
+//   - moodLabel: string (required, non-empty, 1-50 chars)
+//   - notes: string or null (optional/nullable, max 500 chars)
+//   - tags: list of strings (required, max 10 items)
+//   - isOnboardingCheckin: bool (required)
+//
+// Collection 4: activity_sessions/{sessionId}
+// Document ID: {sessionId}
+// Fields:
+//   - id: string (required, matches sessionId, length 1-128, immutable)
+//   - userId: string (required, matches auth.uid, length 1-128, immutable)
+//   - activityId: string (required, non-empty, length 1-128, immutable)
+//   - activityTitle: string (required, non-empty, length 1-150)
+//   - category: string (required, non-empty, length 1-50)
+//   - startedAt: timestamp or ISO string (required, immutable)
+//   - completedAt: timestamp or ISO string (required)
+//   - durationSeconds: int (required, >= 0)
+//   - preValence: int (required, 1 to 5)
+//   - postValence: int (required, 1 to 5)
+//   - helpfulnessRating: int (required, 1 to 5)
+//   - wouldUseAgain: bool (required)
+//   - feedbackComments: string or null (optional/nullable, max 500 chars)
+//   - completedSuccessfully: bool (required)
+//
+// Collection 5: user_preferences/{userId}
+// Document ID: {userId} (Must match request.auth.uid)
+// Fields:
+//   - userId: string (required, matches userId and auth.uid, length 1-128)
+//   - preferredCategories: list of strings (required, max 10 items)
+//   - targetDailyMinutes: int (required, 1 to 180)
+//   - audioGuidanceEnabled: bool (required)
+//   - hapticFeedbackEnabled: bool (required)
+//   - notificationsEnabled: bool (required)
+//   - themeMode: string (required, in ['system', 'light', 'dark'])
+//   - updatedAt: timestamp or ISO string (required)
+//
+// Collection 6: physiological_sessions/{sessionId}
+// Document ID: {sessionId}
+// Fields:
+//   - id: string (required, matches sessionId, length 1-128, immutable)
+//   - userId: string (required, matches auth.uid, length 1-128, immutable)
+//   - sessionType: string (required, in ['calibration', 'activity_session', 'free_monitoring'], immutable)
+//   - sourceDevice: string (required, non-empty, max 100 chars)
+//   - isSimulated: bool (required)
+//   - startedAt: timestamp or ISO string (required, immutable)
+//   - completedAt: timestamp or ISO string (required)
+//   - durationSeconds: int (required, >= 0)
+//   - averageHeartRateBpm: number or null (optional/nullable, 30-250 BPM)
+//   - averageHrvRmssd: number or null (optional/nullable, 0-500 ms)
+//   - meanAlphaPower: number or null (optional/nullable, >= 0)
+//   - meanBetaPower: number or null (optional/nullable, >= 0)
+//   - meanThetaPower: number or null (optional/nullable, >= 0)
+//   - signalQualityScore: number or null (optional/nullable, 0.0 to 1.0)
+//   - artifactsDetected: list of strings (required, max 10 items)
+//   - isReliable: bool (required)
+//
+// Collection 7: therapist_access_grants/{grantId}
+// Document ID: {grantId}
+// Fields:
+//   - id: string (required, matches grantId, length 1-128, immutable)
+//   - clientId: string (required, matches auth.uid on create, length 1-128, immutable)
+//   - clientEmail: string (required, valid email format)
+//   - therapistId: string (required, length 0-128)
+//   - therapistEmail: string (required, valid email format)
+//   - status: string (required, in ['pending', 'active', 'revoked', 'expired'])
+//   - scopes: list of strings (required, max 10 items)
+//   - grantedAt: timestamp or ISO string (required, immutable)
+//   - expiresAt: timestamp or ISO string (required)
+//   - revokedAt: timestamp or ISO string or null (optional/nullable)
+//
+// Collection 8: therapist_profiles/{therapistId}
+// Document ID: {therapistId} (Must match request.auth.uid)
+// Fields:
+//   - id: string (required, matches therapistId and auth.uid, length 1-128, immutable)
+//   - displayName: string (required, length 1-100)
+//   - email: string (required, valid email format)
+//   - organization: string (required, length 1-150)
+//   - licenseNumber: string (required, length 1-50)
+//   - isVerified: bool (required)
+//   - createdAt: timestamp or ISO string (required, immutable)
+//
+// Collection 9: meditation_sessions/{sessionId}
+// Document ID: {sessionId}
+// Fields:
+//   - id: string (required, matches sessionId, length 1-128, immutable)
+//   - userId: string (required, matches auth.uid, length 1-128, immutable)
+//   - mode: string (required, in ['mind', 'heart', 'body', 'breath', 'soundscape'])
+//   - startedAt: timestamp or ISO string (required, immutable)
+//   - completedAt: timestamp or ISO string (required)
+//   - durationSeconds: int (required, >= 0)
+//   - calmPercent: number (required, 0.0 to 100.0)
+//   - neutralPercent: number (required, 0.0 to 100.0)
+//   - activePercent: number (required, 0.0 to 100.0)
+//   - calmPoints: int (required, >= 0)
+//   - birdsAwarded: int (required, >= 0)
+//   - recoveries: int (required, >= 0)
+//   - averageBpm: number (required, 0.0 to 250.0)
+//   - averageRmssd: number (required, 0.0 to 500.0)
+//   - averageStillness: number (required, 0.0 to 100.0)
+//   - notes: string or null (optional/nullable, max 1000 chars)
+//
+// Collection 10: therapist_messages/{messageId}
+// Document ID: {messageId}
+// Fields:
+//   - id: string (required, matches messageId, length 1-128)
+//   - senderId: string (required, matches auth.uid, length 1-128)
+//   - senderName: string (required, length 1-100)
+//   - senderRole: string (required, in ['client', 'therapist'])
+//   - recipientId: string (required, length 1-128)
+//   - grantId: string (required, length 1-128)
+//   - text: string (required, length 1-2000)
+//   - resourceAttachmentId: string or null (optional/nullable, length <= 128)
+//   - resourceAttachmentTitle: string or null (optional/nullable, length <= 150)
+//   - sentAt: timestamp or ISO string (required)
+//
+// Collection 11: therapist_prescriptions/{prescriptionId}
+// Document ID: {prescriptionId}
+// Fields:
+//   - id: string (required, matches prescriptionId, length 1-128, immutable)
+//   - therapistId: string (required, matches auth.uid on create, length 1-128, immutable)
+//   - therapistName: string (required, length 1-100)
+//   - clientId: string (required, length 1-128, immutable)
+//   - clientEmail: string (required, valid email format)
+//   - resourceId: string (required, length 1-128)
+//   - resourceTitle: string (required, length 1-150)
+//   - resourceCategory: string (required, length 1-50)
+//   - instructions: string or null (optional/nullable, length <= 500)
+//   - prescribedAt: timestamp or ISO string (required, immutable)
+//   - status: string (required, in ['recommended', 'completed', 'dismissed'])
+//   - completedSessionId: string or null (optional/nullable, length <= 128)
+//   - patientCalmScore: number or null (optional/nullable, 0.0 to 100.0)
+//   - patientHelpfulnessRating: int or null (optional/nullable, 1 to 5)
+//   - patientFeedback: string or null (optional/nullable, length <= 500)
+//   - completedAt: timestamp or ISO string or null (optional/nullable)
+//
+// Catch-all: Deny all other collections and operations by default.
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Common Helper Functions
+    // ===============================================================
+
+    /// Checks if the request is from an authenticated user.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /// Checks if the authenticated user is the owner of the document.
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    /// Validates email format using standard regex pattern and bounds.
+    function isValidEmail(email) {
+      return email is string &&
+        email.size() > 0 &&
+        email.size() <= 254 &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    /// Validates date string format (ISO 8601) or Firestore timestamp.
+    function isValidTimestampOrIso(val) {
+      return (val is timestamp) ||
+        (val is string &&
+         val.size() >= 19 &&
+         val.size() <= 50 &&
+         val.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.*"));
+    }
+
+    /// Backward compatibility alias for user creation timestamp validation.
+    function isValidCreatedAt(val) {
+      return isValidTimestampOrIso(val);
+    }
+
+    // ===============================================================
+    // Collection: users/{userId} Helper Functions & Domain Validators
+    // ===============================================================
+
+    /// Validates that user document contains only allowed profile fields.
+    function hasOnlyAllowedUserFields(data) {
+      return data.keys().hasOnly([
+        'uid',
+        'email',
+        'createdAt',
+        'pairedDevices',
+        'baselineRestingHr',
+        'baselineHrvRmssd',
+        'displayName',
+        'hasCompletedOnboarding',
+        'totalMeditationMinutes',
+        'streakDays',
+        'pairedHeadbandId'
+      ]);
+    }
+
+    /// Validates that all required user profile fields are present.
+    /// Backward-compatible with legacy Phase 1-5 documents updating onboarding status.
+    function hasRequiredUserFields(data) {
+      return data.keys().hasAll([
+        'uid',
+        'email',
+        'createdAt',
+        'pairedDevices',
+        'baselineRestingHr',
+        'baselineHrvRmssd',
+        'displayName'
+      ]) && (
+        ('hasCompletedOnboarding' in data) ||
+        (resource != null && !('hasCompletedOnboarding' in resource.data))
+      );
+    }
+
+    /// Validates paired devices list size and structure.
+    function isValidPairedDevices(devices) {
+      return devices is list && devices.size() <= 20;
+    }
+
+    /// Validates resting heart rate bounds (or null).
+    function isValidBaselineRestingHr(hr) {
+      return hr == null || (hr is number && hr >= 0 && hr <= 300);
+    }
+
+    /// Validates HRV RMSSD baseline bounds (or null).
+    function isValidBaselineHrvRmssd(hrv) {
+      return hrv == null || (hrv is number && hrv >= 0 && hrv <= 500);
+    }
+
+    /// Validates display name length and type (or null).
+    function isValidDisplayName(name) {
+      return name == null || (name is string && name.size() <= 100);
+    }
+
+    /// Validates total meditation minutes bounds (optional or nullable, int >= 0).
+    function isValidTotalMeditationMinutes(data) {
+      return !('totalMeditationMinutes' in data) ||
+        data.totalMeditationMinutes == null ||
+        (data.totalMeditationMinutes is int && data.totalMeditationMinutes >= 0);
+    }
+
+    /// Validates streak days bounds (optional or nullable, int >= 0).
+    function isValidStreakDays(data) {
+      return !('streakDays' in data) ||
+        data.streakDays == null ||
+        (data.streakDays is int && data.streakDays >= 0);
+    }
+
+    /// Validates paired headband ID bounds (optional or nullable, string <= 128 chars).
+    function isValidPairedHeadbandId(data) {
+      return !('pairedHeadbandId' in data) ||
+        data.pairedHeadbandId == null ||
+        (data.pairedHeadbandId is string && data.pairedHeadbandId.size() <= 128);
+    }
+
+    /// Validates complete user document structure, types, and values.
+    function isValidUser(userId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedUserFields(data) &&
+        hasRequiredUserFields(data) &&
+        data.uid is string &&
+        data.uid == userId &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        isValidEmail(data.email) &&
+        isValidCreatedAt(data.createdAt) &&
+        isValidPairedDevices(data.pairedDevices) &&
+        isValidBaselineRestingHr(data.baselineRestingHr) &&
+        isValidBaselineHrvRmssd(data.baselineHrvRmssd) &&
+        isValidDisplayName(data.displayName) &&
+        (!('hasCompletedOnboarding' in data) || data.hasCompletedOnboarding is bool) &&
+        isValidTotalMeditationMinutes(data) &&
+        isValidStreakDays(data) &&
+        isValidPairedHeadbandId(data);
+    }
+
+    /// Enforces immutability of uid and createdAt on user profile updates.
+    function isImmutableUserFieldsUnchanged() {
+      return request.resource.data.uid == resource.data.uid &&
+        request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // ===============================================================
+    // Collection: consent_records/{userId} Helpers & Domain Validators
+    // ===============================================================
+
+    /// Validates that consent document contains only allowed fields.
+    function hasOnlyAllowedConsentFields(data) {
+      return data.keys().hasOnly([
+        'userId',
+        'policyVersion',
+        'status',
+        'moodTrackingConsent',
+        'physiologicalDataConsent',
+        'adaptiveRecommendationsConsent',
+        'anonymizedResearchConsent',
+        'consentedAt',
+        'lastUpdatedAt',
+        'withdrawnAt'
+      ]);
+    }
+
+    /// Validates that all required consent fields are present.
+    function hasRequiredConsentFields(data) {
+      return data.keys().hasAll([
+        'userId',
+        'policyVersion',
+        'status',
+        'moodTrackingConsent',
+        'physiologicalDataConsent',
+        'adaptiveRecommendationsConsent',
+        'anonymizedResearchConsent',
+        'consentedAt',
+        'lastUpdatedAt',
+        'withdrawnAt'
+      ]);
+    }
+
+    /// Validates policy version string format and bounded length.
+    function isValidPolicyVersion(version) {
+      return version is string &&
+        version.size() >= 1 &&
+        version.size() <= 20;
+    }
+
+    /// Validates consent status value.
+    function isValidConsentStatus(status) {
+      return status is string &&
+        (status == 'granted' || status == 'withdrawn' || status == 'partial');
+    }
+
+    /// Validates withdrawnAt timestamp or ISO string (nullable).
+    function isValidWithdrawnAt(withdrawnAt) {
+      return withdrawnAt == null || isValidTimestampOrIso(withdrawnAt);
+    }
+
+    /// Validates complete consent record structure, types, and values.
+    function isValidConsentRecord(userId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedConsentFields(data) &&
+        hasRequiredConsentFields(data) &&
+        data.userId is string &&
+        data.userId == userId &&
+        data.userId == request.auth.uid &&
+        data.userId.size() >= 1 &&
+        data.userId.size() <= 128 &&
+        isValidPolicyVersion(data.policyVersion) &&
+        isValidConsentStatus(data.status) &&
+        data.moodTrackingConsent is bool &&
+        data.physiologicalDataConsent is bool &&
+        data.adaptiveRecommendationsConsent is bool &&
+        data.anonymizedResearchConsent is bool &&
+        isValidTimestampOrIso(data.consentedAt) &&
+        isValidTimestampOrIso(data.lastUpdatedAt) &&
+        isValidWithdrawnAt(data.withdrawnAt);
+    }
+
+    /// Enforces immutability of userId and consentedAt on consent updates.
+    function isImmutableConsentFieldsUnchanged() {
+      return request.resource.data.userId == resource.data.userId &&
+        request.resource.data.consentedAt == resource.data.consentedAt;
+    }
+
+    // ===============================================================
+    // Collection: mood_checkins/{checkinId} Helpers & Domain Validators
+    // ===============================================================
+
+    /// Validates that mood check-in contains only allowed fields.
+    function hasOnlyAllowedMoodFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'userId',
+        'timestamp',
+        'valence',
+        'moodLabel',
+        'notes',
+        'tags',
+        'isOnboardingCheckin'
+      ]);
+    }
+
+    /// Validates that all required mood check-in fields are present.
+    function hasRequiredMoodFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'userId',
+        'timestamp',
+        'valence',
+        'moodLabel',
+        'notes',
+        'tags',
+        'isOnboardingCheckin'
+      ]);
+    }
+
+    /// Validates mood notes bounds (or null).
+    function isValidMoodNotes(notes) {
+      return notes == null || (notes is string && notes.size() <= 500);
+    }
+
+    /// Validates complete mood check-in structure, types, and values.
+    function isValidMoodCheckin(checkinId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedMoodFields(data) &&
+        hasRequiredMoodFields(data) &&
+        data.id is string &&
+        data.id == checkinId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.userId is string &&
+        data.userId == request.auth.uid &&
+        data.userId.size() >= 1 &&
+        data.userId.size() <= 128 &&
+        isValidTimestampOrIso(data.timestamp) &&
+        data.valence is int &&
+        data.valence >= 1 &&
+        data.valence <= 5 &&
+        data.moodLabel is string &&
+        data.moodLabel.size() > 0 &&
+        data.moodLabel.size() <= 50 &&
+        isValidMoodNotes(data.notes) &&
+        data.tags is list &&
+        data.tags.size() <= 10 &&
+        data.isOnboardingCheckin is bool;
+    }
+
+    /// Enforces immutability of id, userId, and timestamp on mood updates.
+    function isImmutableMoodFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.timestamp == resource.data.timestamp;
+    }
+
+    // ===============================================================
+    // Collection: activity_sessions/{sessionId} Helpers & Domain Validators
+    // ===============================================================
+
+    /// Validates that activity session contains only allowed fields.
+    function hasOnlyAllowedActivitySessionFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'userId',
+        'activityId',
+        'activityTitle',
+        'category',
+        'startedAt',
+        'completedAt',
+        'durationSeconds',
+        'preValence',
+        'postValence',
+        'helpfulnessRating',
+        'wouldUseAgain',
+        'feedbackComments',
+        'completedSuccessfully'
+      ]);
+    }
+
+    /// Validates that all required activity session fields are present.
+    function hasRequiredActivitySessionFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'userId',
+        'activityId',
+        'activityTitle',
+        'category',
+        'startedAt',
+        'completedAt',
+        'durationSeconds',
+        'preValence',
+        'postValence',
+        'helpfulnessRating',
+        'wouldUseAgain',
+        'feedbackComments',
+        'completedSuccessfully'
+      ]);
+    }
+
+    /// Validates feedback comments bounds (or null).
+    function isValidFeedbackComments(comments) {
+      return comments == null || (comments is string && comments.size() <= 500);
+    }
+
+    /// Validates complete activity session structure, types, and values.
+    function isValidActivitySession(sessionId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedActivitySessionFields(data) &&
+        hasRequiredActivitySessionFields(data) &&
+        data.id is string &&
+        data.id == sessionId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.userId is string &&
+        data.userId == request.auth.uid &&
+        data.userId.size() >= 1 &&
+        data.userId.size() <= 128 &&
+        data.activityId is string &&
+        data.activityId.size() >= 1 &&
+        data.activityId.size() <= 128 &&
+        data.activityTitle is string &&
+        data.activityTitle.size() >= 1 &&
+        data.activityTitle.size() <= 150 &&
+        data.category is string &&
+        data.category.size() >= 1 &&
+        data.category.size() <= 50 &&
+        isValidTimestampOrIso(data.startedAt) &&
+        isValidTimestampOrIso(data.completedAt) &&
+        data.durationSeconds is int &&
+        data.durationSeconds >= 0 &&
+        data.preValence is int &&
+        data.preValence >= 1 &&
+        data.preValence <= 5 &&
+        data.postValence is int &&
+        data.postValence >= 1 &&
+        data.postValence <= 5 &&
+        data.helpfulnessRating is int &&
+        data.helpfulnessRating >= 1 &&
+        data.helpfulnessRating <= 5 &&
+        data.wouldUseAgain is bool &&
+        isValidFeedbackComments(data.feedbackComments) &&
+        data.completedSuccessfully is bool;
+    }
+
+    /// Enforces immutability of id, userId, activityId, and startedAt on session updates.
+    function isImmutableActivitySessionFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.activityId == resource.data.activityId &&
+        request.resource.data.startedAt == resource.data.startedAt;
+    }
+
+    // ===============================================================
+    // Collection: user_preferences/{userId} Helpers & Domain Validators
+    // ===============================================================
+
+    /// Validates that user preferences document contains only allowed fields.
+    function hasOnlyAllowedUserPreferencesFields(data) {
+      return data.keys().hasOnly([
+        'userId',
+        'preferredCategories',
+        'targetDailyMinutes',
+        'audioGuidanceEnabled',
+        'hapticFeedbackEnabled',
+        'notificationsEnabled',
+        'themeMode',
+        'updatedAt'
+      ]);
+    }
+
+    /// Validates that all required user preferences fields are present.
+    function hasRequiredUserPreferencesFields(data) {
+      return data.keys().hasAll([
+        'userId',
+        'preferredCategories',
+        'targetDailyMinutes',
+        'audioGuidanceEnabled',
+        'hapticFeedbackEnabled',
+        'notificationsEnabled',
+        'themeMode',
+        'updatedAt'
+      ]);
+    }
+
+    /// Validates themeMode string choice.
+    function isValidThemeMode(mode) {
+      return mode is string &&
+        (mode == 'system' || mode == 'light' || mode == 'dark');
+    }
+
+    /// Validates complete user preferences structure, types, and values.
+    function isValidUserPreferences(userId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedUserPreferencesFields(data) &&
+        hasRequiredUserPreferencesFields(data) &&
+        data.userId is string &&
+        data.userId == userId &&
+        data.userId.size() >= 1 &&
+        data.userId.size() <= 128 &&
+        data.preferredCategories is list &&
+        data.preferredCategories.size() <= 10 &&
+        data.targetDailyMinutes is int &&
+        data.targetDailyMinutes >= 1 &&
+        data.targetDailyMinutes <= 180 &&
+        data.audioGuidanceEnabled is bool &&
+        data.hapticFeedbackEnabled is bool &&
+        data.notificationsEnabled is bool &&
+        isValidThemeMode(data.themeMode) &&
+        isValidTimestampOrIso(data.updatedAt);
+    }
+
+    // ===============================================================
+    // Collection: physiological_sessions/{sessionId} Helpers & Domain Validators
+    // ===============================================================
+
+    /// Validates that physiological session contains only allowed fields.
+    function hasOnlyAllowedPhysiologicalSessionFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'userId',
+        'sessionType',
+        'sourceDevice',
+        'isSimulated',
+        'startedAt',
+        'completedAt',
+        'durationSeconds',
+        'averageHeartRateBpm',
+        'averageHrvRmssd',
+        'meanAlphaPower',
+        'meanBetaPower',
+        'meanThetaPower',
+        'signalQualityScore',
+        'artifactsDetected',
+        'isReliable'
+      ]);
+    }
+
+    /// Validates that all required physiological session fields are present.
+    function hasRequiredPhysiologicalSessionFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'userId',
+        'sessionType',
+        'sourceDevice',
+        'isSimulated',
+        'startedAt',
+        'completedAt',
+        'durationSeconds',
+        'averageHeartRateBpm',
+        'averageHrvRmssd',
+        'meanAlphaPower',
+        'meanBetaPower',
+        'meanThetaPower',
+        'signalQualityScore',
+        'artifactsDetected',
+        'isReliable'
+      ]);
+    }
+
+    /// Validates session type string choices.
+    function isValidPhysiologicalSessionType(sessionType) {
+      return sessionType is string &&
+        (sessionType == 'calibration' || sessionType == 'activity_session' || sessionType == 'free_monitoring');
+    }
+
+    /// Validates telemetry source device string.
+    function isValidSourceDevice(device) {
+      return device is string &&
+        device.size() > 0 &&
+        device.size() <= 100;
+    }
+
+    /// Validates average heart rate in BPM (null or 30-250 BPM).
+    function isValidHeartRate(val) {
+      return val == null || (val is number && val >= 30 && val <= 250);
+    }
+
+    /// Validates average HRV RMSSD (null or 0-500 ms).
+    function isValidHrvRmssd(val) {
+      return val == null || (val is number && val >= 0 && val <= 500);
+    }
+
+    /// Validates EEG band spectral power (null or >= 0).
+    function isValidSpectralPower(val) {
+      return val == null || (val is number && val >= 0);
+    }
+
+    /// Validates signal quality score (null or 0.0 to 1.0).
+    function isValidSignalQualityScore(val) {
+      return val == null || (val is number && val >= 0.0 && val <= 1.0);
+    }
+
+    /// Validates complete physiological session structure, types, and values.
+    function isValidPhysiologicalSession(sessionId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedPhysiologicalSessionFields(data) &&
+        hasRequiredPhysiologicalSessionFields(data) &&
+        data.id is string &&
+        data.id == sessionId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.userId is string &&
+        data.userId == request.auth.uid &&
+        data.userId.size() >= 1 &&
+        data.userId.size() <= 128 &&
+        isValidPhysiologicalSessionType(data.sessionType) &&
+        isValidSourceDevice(data.sourceDevice) &&
+        data.isSimulated is bool &&
+        isValidTimestampOrIso(data.startedAt) &&
+        isValidTimestampOrIso(data.completedAt) &&
+        data.durationSeconds is int &&
+        data.durationSeconds >= 0 &&
+        isValidHeartRate(data.averageHeartRateBpm) &&
+        isValidHrvRmssd(data.averageHrvRmssd) &&
+        isValidSpectralPower(data.meanAlphaPower) &&
+        isValidSpectralPower(data.meanBetaPower) &&
+        isValidSpectralPower(data.meanThetaPower) &&
+        isValidSignalQualityScore(data.signalQualityScore) &&
+        data.artifactsDetected is list &&
+        data.artifactsDetected.size() <= 10 &&
+        data.isReliable is bool;
+    }
+
+    /// Enforces immutability of id, userId, sessionType, and startedAt on physiological session updates.
+    function isImmutablePhysiologicalSessionFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.sessionType == resource.data.sessionType &&
+        request.resource.data.startedAt == resource.data.startedAt;
+    }
+
+    // ===============================================================
+    // Collection: therapist_access_grants/{grantId} Helpers & Validators
+    // ===============================================================
+
+    /// Validates that grant document contains only allowed fields.
+    function hasOnlyAllowedGrantFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'clientId',
+        'clientEmail',
+        'therapistId',
+        'therapistEmail',
+        'status',
+        'scopes',
+        'grantedAt',
+        'expiresAt',
+        'revokedAt'
+      ]);
+    }
+
+    /// Validates that all required grant fields are present.
+    function hasRequiredGrantFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'clientId',
+        'clientEmail',
+        'therapistId',
+        'therapistEmail',
+        'status',
+        'scopes',
+        'grantedAt',
+        'expiresAt',
+        'revokedAt'
+      ]);
+    }
+
+    /// Validates grant status choice.
+    function isValidGrantStatus(status) {
+      return status is string &&
+        (status == 'pending' || status == 'active' || status == 'revoked' || status == 'expired');
+    }
+
+    /// Validates revokedAt timestamp or ISO string (nullable).
+    function isValidRevokedAt(val) {
+      return val == null || isValidTimestampOrIso(val);
+    }
+
+    /// Validates complete therapist access grant structure, types, and values.
+    function isValidTherapistAccessGrant(grantId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedGrantFields(data) &&
+        hasRequiredGrantFields(data) &&
+        data.id is string &&
+        data.id == grantId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.clientId is string &&
+        data.clientId.size() >= 1 &&
+        data.clientId.size() <= 128 &&
+        isValidEmail(data.clientEmail) &&
+        data.therapistId is string &&
+        data.therapistId.size() <= 128 &&
+        isValidEmail(data.therapistEmail) &&
+        isValidGrantStatus(data.status) &&
+        data.scopes is list &&
+        data.scopes.size() <= 10 &&
+        isValidTimestampOrIso(data.grantedAt) &&
+        isValidTimestampOrIso(data.expiresAt) &&
+        isValidRevokedAt(data.revokedAt);
+    }
+
+    /// Enforces immutability of id, clientId, and grantedAt on grant updates.
+    function isImmutableGrantFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.clientId == resource.data.clientId &&
+        request.resource.data.grantedAt == resource.data.grantedAt;
+    }
+
+    // ===============================================================
+    // Collection: therapist_profiles/{therapistId} Helpers & Validators
+    // ===============================================================
+
+    /// Validates that therapist profile contains only allowed fields.
+    function hasOnlyAllowedTherapistProfileFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'displayName',
+        'email',
+        'organization',
+        'licenseNumber',
+        'isVerified',
+        'createdAt'
+      ]);
+    }
+
+    /// Validates that all required therapist profile fields are present.
+    function hasRequiredTherapistProfileFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'displayName',
+        'email',
+        'organization',
+        'licenseNumber',
+        'isVerified',
+        'createdAt'
+      ]);
+    }
+
+    /// Validates complete therapist profile structure, types, and values.
+    function isValidTherapistProfile(therapistId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedTherapistProfileFields(data) &&
+        hasRequiredTherapistProfileFields(data) &&
+        data.id is string &&
+        data.id == therapistId &&
+        data.id == request.auth.uid &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.displayName is string &&
+        data.displayName.size() >= 1 &&
+        data.displayName.size() <= 100 &&
+        isValidEmail(data.email) &&
+        data.organization is string &&
+        data.organization.size() >= 1 &&
+        data.organization.size() <= 150 &&
+        data.licenseNumber is string &&
+        data.licenseNumber.size() >= 1 &&
+        data.licenseNumber.size() <= 50 &&
+        data.isVerified is bool &&
+        isValidTimestampOrIso(data.createdAt);
+    }
+
+    /// Enforces immutability of id and createdAt on therapist profile updates.
+    function isImmutableTherapistProfileFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // ===============================================================
+    // Collection: meditation_sessions/{sessionId} Helpers & Domain Validators
+    // ===============================================================
+
+    /// Validates that meditation session contains only allowed fields.
+    function hasOnlyAllowedMeditationSessionFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'userId',
+        'mode',
+        'startedAt',
+        'completedAt',
+        'durationSeconds',
+        'calmPercent',
+        'neutralPercent',
+        'activePercent',
+        'calmPoints',
+        'birdsAwarded',
+        'recoveries',
+        'averageBpm',
+        'averageRmssd',
+        'averageStillness',
+        'notes'
+      ]);
+    }
+
+    /// Validates that all required meditation session fields are present.
+    function hasRequiredMeditationSessionFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'userId',
+        'mode',
+        'startedAt',
+        'completedAt',
+        'durationSeconds',
+        'calmPercent',
+        'neutralPercent',
+        'activePercent',
+        'calmPoints',
+        'birdsAwarded',
+        'recoveries',
+        'averageBpm',
+        'averageRmssd',
+        'averageStillness'
+      ]);
+    }
+
+    /// Validates meditation experience mode choices.
+    function isValidMeditationMode(mode) {
+      return mode is string &&
+        (mode == 'mind' || mode == 'heart' || mode == 'body' || mode == 'breath' || mode == 'soundscape');
+    }
+
+    /// Validates meditation notes (nullable or optional, max 1000 chars).
+    function isValidMeditationNotes(notes) {
+      return notes == null || (notes is string && notes.size() <= 1000);
+    }
+
+    /// Validates complete meditation session structure, types, and values.
+    function isValidMeditationSession(sessionId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedMeditationSessionFields(data) &&
+        hasRequiredMeditationSessionFields(data) &&
+        data.id is string &&
+        data.id == sessionId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.userId is string &&
+        data.userId == request.auth.uid &&
+        data.userId.size() >= 1 &&
+        data.userId.size() <= 128 &&
+        isValidMeditationMode(data.mode) &&
+        isValidTimestampOrIso(data.startedAt) &&
+        isValidTimestampOrIso(data.completedAt) &&
+        data.durationSeconds is int &&
+        data.durationSeconds >= 0 &&
+        data.calmPercent is number &&
+        data.calmPercent >= 0.0 &&
+        data.calmPercent <= 100.0 &&
+        data.neutralPercent is number &&
+        data.neutralPercent >= 0.0 &&
+        data.neutralPercent <= 100.0 &&
+        data.activePercent is number &&
+        data.activePercent >= 0.0 &&
+        data.activePercent <= 100.0 &&
+        data.calmPoints is int &&
+        data.calmPoints >= 0 &&
+        data.birdsAwarded is int &&
+        data.birdsAwarded >= 0 &&
+        data.recoveries is int &&
+        data.recoveries >= 0 &&
+        data.averageBpm is number &&
+        data.averageBpm >= 0.0 &&
+        data.averageBpm <= 250.0 &&
+        data.averageRmssd is number &&
+        data.averageRmssd >= 0.0 &&
+        data.averageRmssd <= 500.0 &&
+        data.averageStillness is number &&
+        data.averageStillness >= 0.0 &&
+        data.averageStillness <= 100.0 &&
+        (!('notes' in data) || isValidMeditationNotes(data.notes));
+    }
+
+    /// Enforces immutability of id, userId, and startedAt on meditation session updates.
+    function isImmutableMeditationSessionFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.startedAt == resource.data.startedAt;
+    }
+
+    // ===============================================================
+    // Collection: therapist_messages/{messageId} Helpers & Validators
+    // ===============================================================
+
+    /// Validates that therapist message contains only allowed fields.
+    function hasOnlyAllowedTherapistMessageFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'senderId',
+        'senderName',
+        'senderRole',
+        'recipientId',
+        'grantId',
+        'text',
+        'resourceAttachmentId',
+        'resourceAttachmentTitle',
+        'sentAt'
+      ]);
+    }
+
+    /// Validates that all required therapist message fields are present.
+    function hasRequiredTherapistMessageFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'senderId',
+        'senderName',
+        'senderRole',
+        'recipientId',
+        'grantId',
+        'text',
+        'sentAt'
+      ]);
+    }
+
+    /// Validates senderRole string choice.
+    function isValidSenderRole(role) {
+      return role is string &&
+        (role == 'client' || role == 'therapist');
+    }
+
+    /// Validates optional resource attachment ID (nullable or optional, string <= 128 chars).
+    function isValidResourceAttachmentId(data) {
+      return !('resourceAttachmentId' in data) ||
+        data.resourceAttachmentId == null ||
+        (data.resourceAttachmentId is string && data.resourceAttachmentId.size() <= 128);
+    }
+
+    /// Validates optional resource attachment title (nullable or optional, string <= 150 chars).
+    function isValidResourceAttachmentTitle(data) {
+      return !('resourceAttachmentTitle' in data) ||
+        data.resourceAttachmentTitle == null ||
+        (data.resourceAttachmentTitle is string && data.resourceAttachmentTitle.size() <= 150);
+    }
+
+    /// Validates complete therapist message structure, types, and values.
+    function isValidTherapistMessage(messageId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedTherapistMessageFields(data) &&
+        hasRequiredTherapistMessageFields(data) &&
+        data.id is string &&
+        data.id == messageId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.senderId is string &&
+        data.senderId == request.auth.uid &&
+        data.senderId.size() >= 1 &&
+        data.senderId.size() <= 128 &&
+        data.senderName is string &&
+        data.senderName.size() >= 1 &&
+        data.senderName.size() <= 100 &&
+        isValidSenderRole(data.senderRole) &&
+        data.recipientId is string &&
+        data.recipientId.size() >= 1 &&
+        data.recipientId.size() <= 128 &&
+        data.grantId is string &&
+        data.grantId.size() >= 1 &&
+        data.grantId.size() <= 128 &&
+        data.text is string &&
+        data.text.size() >= 1 &&
+        data.text.size() <= 2000 &&
+        isValidResourceAttachmentId(data) &&
+        isValidResourceAttachmentTitle(data) &&
+        isValidTimestampOrIso(data.sentAt);
+    }
+
+    // ===============================================================
+    // Collection: therapist_prescriptions/{prescriptionId} Helpers & Validators
+    // ===============================================================
+
+    /// Validates that therapist prescription contains only allowed fields.
+    function hasOnlyAllowedTherapistPrescriptionFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'therapistId',
+        'therapistName',
+        'clientId',
+        'clientEmail',
+        'resourceId',
+        'resourceTitle',
+        'resourceCategory',
+        'instructions',
+        'prescribedAt',
+        'status',
+        'completedSessionId',
+        'patientCalmScore',
+        'patientHelpfulnessRating',
+        'patientFeedback',
+        'completedAt'
+      ]);
+    }
+
+    /// Validates that required base fields of a prescription are present.
+    function hasRequiredTherapistPrescriptionFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'therapistId',
+        'therapistName',
+        'clientId',
+        'clientEmail',
+        'resourceId',
+        'resourceTitle',
+        'resourceCategory',
+        'prescribedAt',
+        'status'
+      ]);
+    }
+
+    /// Validates prescription status choice.
+    function isValidPrescriptionStatus(status) {
+      return status is string &&
+        (status == 'recommended' || status == 'completed' || status == 'dismissed');
+    }
+
+    /// Validates prescription instructions (optional or nullable, string <= 500 chars).
+    function isValidPrescriptionInstructions(data) {
+      return !('instructions' in data) ||
+        data.instructions == null ||
+        (data.instructions is string && data.instructions.size() <= 500);
+    }
+
+    /// Validates completed session ID (optional or nullable, string <= 128 chars).
+    function isValidCompletedSessionId(data) {
+      return !('completedSessionId' in data) ||
+        data.completedSessionId == null ||
+        (data.completedSessionId is string && data.completedSessionId.size() <= 128);
+    }
+
+    /// Validates patient calm score (optional or nullable, number 0.0 to 100.0).
+    function isValidPatientCalmScore(data) {
+      return !('patientCalmScore' in data) ||
+        data.patientCalmScore == null ||
+        (data.patientCalmScore is number && data.patientCalmScore >= 0.0 && data.patientCalmScore <= 100.0);
+    }
+
+    /// Validates patient helpfulness rating (optional or nullable, int 1 to 5).
+    function isValidPatientHelpfulnessRating(data) {
+      return !('patientHelpfulnessRating' in data) ||
+        data.patientHelpfulnessRating == null ||
+        (data.patientHelpfulnessRating is int && data.patientHelpfulnessRating >= 1 && data.patientHelpfulnessRating <= 5);
+    }
+
+    /// Validates patient feedback (optional or nullable, string <= 500 chars).
+    function isValidPatientFeedback(data) {
+      return !('patientFeedback' in data) ||
+        data.patientFeedback == null ||
+        (data.patientFeedback is string && data.patientFeedback.size() <= 500);
+    }
+
+    /// Validates completedAt timestamp or ISO string (optional or nullable).
+    function isValidCompletedAt(data) {
+      return !('completedAt' in data) ||
+        data.completedAt == null ||
+        isValidTimestampOrIso(data.completedAt);
+    }
+
+    /// Validates complete therapist prescription structure, types, and values.
+    function isValidTherapistPrescription(prescriptionId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedTherapistPrescriptionFields(data) &&
+        hasRequiredTherapistPrescriptionFields(data) &&
+        data.id is string &&
+        data.id == prescriptionId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.therapistId is string &&
+        data.therapistId.size() >= 1 &&
+        data.therapistId.size() <= 128 &&
+        data.therapistName is string &&
+        data.therapistName.size() >= 1 &&
+        data.therapistName.size() <= 100 &&
+        data.clientId is string &&
+        data.clientId.size() >= 1 &&
+        data.clientId.size() <= 128 &&
+        isValidEmail(data.clientEmail) &&
+        data.resourceId is string &&
+        data.resourceId.size() >= 1 &&
+        data.resourceId.size() <= 128 &&
+        data.resourceTitle is string &&
+        data.resourceTitle.size() >= 1 &&
+        data.resourceTitle.size() <= 150 &&
+        data.resourceCategory is string &&
+        data.resourceCategory.size() >= 1 &&
+        data.resourceCategory.size() <= 50 &&
+        isValidPrescriptionInstructions(data) &&
+        isValidTimestampOrIso(data.prescribedAt) &&
+        isValidPrescriptionStatus(data.status) &&
+        isValidCompletedSessionId(data) &&
+        isValidPatientCalmScore(data) &&
+        isValidPatientHelpfulnessRating(data) &&
+        isValidPatientFeedback(data) &&
+        isValidCompletedAt(data);
+    }
+
+    /// Enforces immutability of id, therapistId, clientId, and prescribedAt on prescription updates.
+    function isImmutablePrescriptionFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.therapistId == resource.data.therapistId &&
+        request.resource.data.clientId == resource.data.clientId &&
+        request.resource.data.prescribedAt == resource.data.prescribedAt;
+    }
+
+    // ===============================================================
+    // Root Fallback: Deny all unmatched paths by default
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Collection: users/{userId}
+    // ===============================================================
+    match /users/{userId} {
+      // 1. Read: Authenticated owner only (PII protection, no public read)
+      allow read: if isOwner(userId);
+
+      // 2. Create: Authenticated owner only, strict domain validation
+      allow create: if isOwner(userId) && isValidUser(userId);
+
+      // 3. Update: Authenticated owner only, domain validation, immutable fields
+      allow update: if isOwner(userId) &&
+        isValidUser(userId) &&
+        isImmutableUserFieldsUnchanged();
+
+      // 4. Delete: Explicitly disallowed to prevent accidental data loss
+      allow delete: if false;
+    }
+
+    // ===============================================================
+    // Collection: consent_records/{userId}
+    // ===============================================================
+    match /consent_records/{userId} {
+      // 1. Read: Authenticated owner only
+      allow read: if isOwner(userId);
+
+      // 2. Create: Authenticated owner only, strict domain validation
+      allow create: if isOwner(userId) && isValidConsentRecord(userId);
+
+      // 3. Update: Authenticated owner only, strict validation, immutable audit trail
+      allow update: if isOwner(userId) &&
+        isValidConsentRecord(userId) &&
+        isImmutableConsentFieldsUnchanged();
+
+      // 4. Delete: Denied to preserve legally required consent audit trails
+      allow delete: if false;
+    }
+
+    // ===============================================================
+    // Collection: mood_checkins/{checkinId}
+    // ===============================================================
+    match /mood_checkins/{checkinId} {
+      // 1. Read: Authenticated owner only
+      allow read: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      // 2. Create: Authenticated owner only, checkinId matches id
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == checkinId &&
+        isValidMoodCheckin(checkinId);
+
+      // 3. Update: Authenticated owner only, immutable checkinId, userId, timestamp
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == checkinId &&
+        isImmutableMoodFieldsUnchanged() &&
+        isValidMoodCheckin(checkinId);
+
+      // 4. Delete: Authenticated owner only (Emotion Vault / privacy deletion)
+      allow delete: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Collection: activity_sessions/{sessionId}
+    // ===============================================================
+    match /activity_sessions/{sessionId} {
+      // 1. Read: Authenticated owner only
+      allow read: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      // 2. Create: Authenticated owner only, sessionId matches id, domain validator
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == sessionId &&
+        isValidActivitySession(sessionId);
+
+      // 3. Update: Authenticated owner only, immutable fields check, domain validator
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == sessionId &&
+        isImmutableActivitySessionFieldsUnchanged() &&
+        isValidActivitySession(sessionId);
+
+      // 4. Delete: Authenticated owner only (privacy deletion of user activity history)
+      allow delete: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Collection: user_preferences/{userId}
+    // ===============================================================
+    match /user_preferences/{userId} {
+      // 1. Read: Authenticated owner only
+      allow read: if isAuthenticated() &&
+        request.auth.uid == userId;
+
+      // 2. Create: Authenticated owner only, userId matches path and body, domain validator
+      allow create: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId &&
+        isValidUserPreferences(userId);
+
+      // 3. Update: Authenticated owner only, immutable userId, domain validator
+      allow update: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId &&
+        resource.data.userId == userId &&
+        isValidUserPreferences(userId);
+
+      // 4. Delete: Authenticated owner only
+      allow delete: if isAuthenticated() &&
+        request.auth.uid == userId;
+    }
+
+    // ===============================================================
+    // Collection: physiological_sessions/{sessionId}
+    // ===============================================================
+    match /physiological_sessions/{sessionId} {
+      // 1. Read: Authenticated owner only
+      allow read: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      // 2. Create: Authenticated owner only, sessionId matches id, domain validator
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == sessionId &&
+        isValidPhysiologicalSession(sessionId);
+
+      // 3. Update: Authenticated owner only, immutable fields check, domain validator
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == sessionId &&
+        isImmutablePhysiologicalSessionFieldsUnchanged() &&
+        isValidPhysiologicalSession(sessionId);
+
+      // 4. Delete: Authenticated owner only
+      allow delete: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Collection: therapist_access_grants/{grantId}
+    // ===============================================================
+    match /therapist_access_grants/{grantId} {
+      // 1. Read: Authenticated client or therapist party (by UID or email)
+      allow read: if isAuthenticated() &&
+        (resource.data.clientId == request.auth.uid ||
+         resource.data.therapistId == request.auth.uid ||
+         ('email' in request.auth.token &&
+          request.auth.token.email != null &&
+          request.auth.token.email.lower() == resource.data.therapistEmail.lower()));
+
+      // 2. Create: Authenticated client owner, grantId matches id, domain validator
+      allow create: if isAuthenticated() &&
+        request.resource.data.clientId == request.auth.uid &&
+        request.resource.data.id == grantId &&
+        isValidTherapistAccessGrant(grantId);
+
+      // 3. Update:
+      //    - Client can update (e.g. revoke or change scopes) if resource.data.clientId == request.auth.uid
+      //    - Therapist can update (accept invite: change status from 'pending' to 'active' & bind therapistId)
+      //      if request.auth.uid == resource.data.therapistId || request.auth.token.email.lower() == resource.data.therapistEmail.lower()
+      //    - Enforces immutability of id, clientId, grantedAt and domain validator
+      allow update: if isAuthenticated() &&
+        (
+          resource.data.clientId == request.auth.uid ||
+          resource.data.therapistId == request.auth.uid ||
+          ('email' in request.auth.token &&
+           request.auth.token.email != null &&
+           request.auth.token.email.lower() == resource.data.therapistEmail.lower())
+        ) &&
+        request.resource.data.id == grantId &&
+        isImmutableGrantFieldsUnchanged() &&
+        isValidTherapistAccessGrant(grantId);
+
+      // 4. Delete: Explicitly disallowed to preserve legally required audit trail of consent and revocation
+      allow delete: if false;
+    }
+
+    // ===============================================================
+    // Collection: therapist_profiles/{therapistId}
+    // ===============================================================
+    match /therapist_profiles/{therapistId} {
+      // 1. Read: Authenticated users (clients verifying therapist credentials before granting consent)
+      allow read: if isAuthenticated();
+
+      // 2. Create: Authenticated therapist owner, therapistId matches id and auth.uid, domain validator
+      allow create: if isAuthenticated() &&
+        request.auth.uid == therapistId &&
+        request.resource.data.id == therapistId &&
+        isValidTherapistProfile(therapistId);
+
+      // 3. Update: Authenticated therapist owner only, immutable fields check, domain validator
+      allow update: if isAuthenticated() &&
+        request.auth.uid == therapistId &&
+        resource.data.id == therapistId &&
+        request.resource.data.id == therapistId &&
+        isImmutableTherapistProfileFieldsUnchanged() &&
+        isValidTherapistProfile(therapistId);
+
+      // 4. Delete: Explicitly disallowed to preserve therapist profile integrity
+      allow delete: if false;
+    }
+
+    // ===============================================================
+    // Collection: meditation_sessions/{sessionId}
+    // ===============================================================
+    match /meditation_sessions/{sessionId} {
+      // 1. Read: Authenticated owner or therapist with active access grant
+      allow read: if isAuthenticated() &&
+        (resource.data.userId == request.auth.uid ||
+         exists(/databases/$(database)/documents/therapist_access_grants/$(request.auth.uid + '_' + resource.data.userId)) ||
+         exists(/databases/$(database)/documents/therapist_access_grants/$(resource.data.userId + '_' + request.auth.uid)));
+
+      // 2. Create: Authenticated owner only, sessionId matches id, domain validator
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == sessionId &&
+        isValidMeditationSession(sessionId);
+
+      // 3. Update: Authenticated owner only, immutable fields check, domain validator
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == sessionId &&
+        isImmutableMeditationSessionFieldsUnchanged() &&
+        isValidMeditationSession(sessionId);
+
+      // 4. Delete: Authenticated owner only
+      allow delete: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Collection: therapist_messages/{messageId}
+    // ===============================================================
+    match /therapist_messages/{messageId} {
+      // 1. Read: Authenticated clinical care team and patient
+      allow read: if isAuthenticated();
+
+      // 2. Create: Authenticated sender only, messageId matches id, domain validator
+      allow create: if isAuthenticated() &&
+        request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.id == messageId &&
+        isValidTherapistMessage(messageId);
+
+      // 3. Update: Denied (immutable chat history)
+      allow update: if false;
+
+      // 4. Delete: Denied (immutable chat history)
+      allow delete: if false;
+    }
+
+    // ===============================================================
+    // Collection: therapist_prescriptions/{prescriptionId}
+    // ===============================================================
+    match /therapist_prescriptions/{prescriptionId} {
+      // 1. Read: Authenticated prescribing therapist or assigned client
+      allow read: if isAuthenticated() &&
+        (resource.data.therapistId == request.auth.uid ||
+         resource.data.clientId == request.auth.uid);
+
+      // 2. Create: Authenticated prescribing therapist, prescriptionId matches id, domain validator
+      allow create: if isAuthenticated() &&
+        request.resource.data.therapistId == request.auth.uid &&
+        request.resource.data.id == prescriptionId &&
+        isValidTherapistPrescription(prescriptionId);
+
+      // 3. Update: Authenticated therapist or client, immutable core fields, domain validator
+      allow update: if isAuthenticated() &&
+        (resource.data.therapistId == request.auth.uid ||
+         resource.data.clientId == request.auth.uid) &&
+        request.resource.data.id == prescriptionId &&
+        isImmutablePrescriptionFieldsUnchanged() &&
+        isValidTherapistPrescription(prescriptionId);
+
+      // 4. Delete: Explicitly disallowed to preserve clinical audit trail
+      allow delete: if false;
+    }
+  }
+}
