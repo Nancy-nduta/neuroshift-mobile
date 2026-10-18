@@ -390,3 +390,7 @@
 - Timestamp: 2026-10-18T18:43:53+00:00
 - Verification status: PASSED
 
+### Milestone 099: test(widget): add widget tests for main shell, fit visualizer, and results screen
+- Timestamp: 2026-10-18T22:05:29+00:00
+- Verification status: PASSED
+
