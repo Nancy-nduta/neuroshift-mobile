@@ -382,3 +382,7 @@
 - Timestamp: 2026-10-18T12:00:41+00:00
 - Verification status: PASSED
 
+### Milestone 097: feat(firestore): implement session and therapist repositories with cloud firestore
+- Timestamp: 2026-10-18T15:22:17+00:00
+- Verification status: PASSED
+
