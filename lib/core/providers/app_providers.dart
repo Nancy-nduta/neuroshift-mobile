@@ -106,3 +106,16 @@ final clientPrescriptionsProvider = StreamProvider<List<TherapistPrescription>>(
   return ref.watch(therapistRepositoryProvider).streamPrescriptionsForClient(user.uid);
 });
 
+/// Controls the active bottom navigation bar tab in MainShell across the entire app
+class MainNavNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void setIndex(int index) => state = index;
+}
+
+final mainNavIndexProvider = NotifierProvider<MainNavNotifier, int>(
+  MainNavNotifier.new,
+);
+
+

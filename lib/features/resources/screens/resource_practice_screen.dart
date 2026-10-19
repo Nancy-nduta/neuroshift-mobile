@@ -504,9 +504,13 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
             Expanded(
               child: _buildBiometricBadge(
                 label: 'MIND STATE',
-                value: signal.mindState.name.toUpperCase(),
+                value: (!status.isConnected || status.packetsReceived < 15)
+                    ? 'CALIBRATING'
+                    : signal.mindState.name.toUpperCase(),
                 icon: Icons.psychology,
-                color: _getMindStateColor(signal.mindState),
+                color: (!status.isConnected || status.packetsReceived < 15)
+                    ? MuseColors.bodyAmber
+                    : _getMindStateColor(signal.mindState),
               ),
             ),
             const SizedBox(width: MuseSpacing.sm),
@@ -518,7 +522,7 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
                     ? '${signal.heartRateBpm} BPM'
                     : (status.heartRateBpm != null && status.heartRateBpm! > 0)
                         ? '${status.heartRateBpm} BPM'
-                        : '-- BPM',
+                        : (status.isConnected ? 'Measuring...' : '-- BPM'),
                 icon: Icons.favorite,
                 color: MuseColors.roseGlow,
               ),
@@ -564,9 +568,11 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
                       color: MuseColors.mindCyan.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
-                      'MUSE 2 SENSORS ACTIVE',
-                      style: TextStyle(
+                    child: Text(
+                      status.isConnected
+                          ? 'MUSE 2 LIVE • ${status.packetsReceived} PKTS'
+                          : 'AWAITING SENSORS',
+                      style: const TextStyle(
                         color: MuseColors.mindCyan,
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
@@ -715,7 +721,7 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
     required Color color,
   }) {
     // Normalization for visual progress bar (microvolts typical scale: 0 - 30 uV)
-    final clampedProgress = (power / 25.0).clamp(0.05, 1.0);
+    final clampedProgress = (power <= 0.05) ? 0.0 : (power / 25.0).clamp(0.0, 1.0);
 
     return Row(
       children: [
@@ -822,56 +828,66 @@ class _BrainwaveSpectrumPainter extends CustomPainter {
     canvas.drawLine(Offset(0, size.height * 0.25), Offset(size.width, size.height * 0.25), gridPaint);
     canvas.drawLine(Offset(0, size.height * 0.75), Offset(size.width, size.height * 0.75), gridPaint);
 
-    // 1. Delta (Slow, smooth, deep - Blue)
+    final hasSignal = (alpha > 0.05 || beta > 0.05 || theta > 0.05 || delta > 0.05 || gamma > 0.05);
+
+    // Amplitudes scale directly with real live microvolts (µV)
+    // When no signal is present yet, flatline or idle so there are no fake placeholders
+    final dAmp = hasSignal ? (delta.clamp(0.0, 35.0) * 0.9) : 0.0;
+    final tAmp = hasSignal ? (theta.clamp(0.0, 35.0) * 1.0) : 0.0;
+    final aAmp = hasSignal ? (alpha.clamp(0.0, 35.0) * 1.25) : 0.0;
+    final bAmp = hasSignal ? (beta.clamp(0.0, 35.0) * 0.85) : 0.0;
+    final gAmp = hasSignal ? (gamma.clamp(0.0, 35.0) * 0.6) : 0.0;
+
+    // 1. Delta (0.5–4 Hz: Slow, deep rest - Blue)
     _drawWave(
       canvas: canvas,
       size: size,
-      color: const Color(0xFF3B82F6).withValues(alpha: 0.8),
-      amplitude: 14.0 + (delta.clamp(0, 30) * 0.5),
+      color: const Color(0xFF3B82F6).withValues(alpha: hasSignal ? 0.8 : 0.2),
+      amplitude: dAmp,
       frequency: 1.5,
       phase: progress * 2 * math.pi * 0.5,
       strokeWidth: 2.0,
     );
 
-    // 2. Theta (Meditative - Amber)
+    // 2. Theta (4–8 Hz: Meditative flow - Amber)
     _drawWave(
       canvas: canvas,
       size: size,
-      color: const Color(0xFFFFB703).withValues(alpha: 0.85),
-      amplitude: 11.0 + (theta.clamp(0, 30) * 0.6),
+      color: const Color(0xFFFFB703).withValues(alpha: hasSignal ? 0.85 : 0.2),
+      amplitude: tAmp,
       frequency: 2.8,
       phase: progress * 2 * math.pi * 0.8,
       strokeWidth: 2.0,
     );
 
-    // 3. Alpha (Calm awareness - Cyan, brightest)
+    // 3. Alpha (8–13 Hz: Calm awareness - Cyan, primary)
     _drawWave(
       canvas: canvas,
       size: size,
-      color: const Color(0xFF00E5FF),
-      amplitude: 16.0 + (alpha.clamp(0, 30) * 0.8),
+      color: const Color(0xFF00E5FF).withValues(alpha: hasSignal ? 1.0 : 0.3),
+      amplitude: aAmp,
       frequency: 4.5,
       phase: progress * 2 * math.pi * 1.2,
       strokeWidth: 2.5,
     );
 
-    // 4. Beta (Active thinking - Purple)
+    // 4. Beta (13–30 Hz: Active thinking - Purple)
     _drawWave(
       canvas: canvas,
       size: size,
-      color: const Color(0xFF9D4EDD).withValues(alpha: 0.85),
-      amplitude: 8.0 + (beta.clamp(0, 30) * 0.4),
+      color: const Color(0xFF9D4EDD).withValues(alpha: hasSignal ? 0.85 : 0.2),
+      amplitude: bAmp,
       frequency: 7.0,
       phase: progress * 2 * math.pi * 1.8,
       strokeWidth: 1.8,
     );
 
-    // 5. Gamma (Fast cognition - Pink)
+    // 5. Gamma (30–50 Hz: Fast cognition - Pink)
     _drawWave(
       canvas: canvas,
       size: size,
-      color: const Color(0xFFEC4899).withValues(alpha: 0.75),
-      amplitude: 5.0 + (gamma.clamp(0, 30) * 0.3),
+      color: const Color(0xFFEC4899).withValues(alpha: hasSignal ? 0.75 : 0.2),
+      amplitude: gAmp,
       frequency: 11.0,
       phase: progress * 2 * math.pi * 2.4,
       strokeWidth: 1.5,

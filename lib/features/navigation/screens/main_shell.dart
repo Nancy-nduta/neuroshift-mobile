@@ -16,10 +16,8 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  int _currentIndex = 0;
-
   void _onTabSelected(int index) {
-    setState(() => _currentIndex = index);
+    ref.read(mainNavIndexProvider.notifier).setIndex(index);
   }
 
   @override
@@ -95,7 +93,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       ];
     }
 
-    final safeIndex = _currentIndex < screens.length ? _currentIndex : 0;
+    final currentIndex = ref.watch(mainNavIndexProvider);
+    final safeIndex = currentIndex < screens.length ? currentIndex : 0;
 
     return Scaffold(
       backgroundColor: MuseColors.spaceBackground,

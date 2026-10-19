@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../models/signal_reading.dart';
 import 'dft_processor.dart';
 
@@ -61,29 +63,42 @@ class EegBandAnalyzer {
       applyHannWindow: true,
     );
 
-    final delta = psd.integrateBandPower(EegBandFrequencies.deltaMin, EegBandFrequencies.deltaMax);
-    final theta = psd.integrateBandPower(EegBandFrequencies.thetaMin, EegBandFrequencies.thetaMax);
-    final alpha = psd.integrateBandPower(EegBandFrequencies.alphaMin, EegBandFrequencies.alphaMax);
-    final beta = psd.integrateBandPower(EegBandFrequencies.betaMin, EegBandFrequencies.betaMax);
-    final gamma = psd.integrateBandPower(EegBandFrequencies.gammaMin, EegBandFrequencies.gammaMax);
+    final rawDelta = psd.integrateBandPower(EegBandFrequencies.deltaMin, EegBandFrequencies.deltaMax);
+    final rawTheta = psd.integrateBandPower(EegBandFrequencies.thetaMin, EegBandFrequencies.thetaMax);
+    final rawAlpha = psd.integrateBandPower(EegBandFrequencies.alphaMin, EegBandFrequencies.alphaMax);
+    final rawBeta = psd.integrateBandPower(EegBandFrequencies.betaMin, EegBandFrequencies.betaMax);
+    final rawGamma = psd.integrateBandPower(EegBandFrequencies.gammaMin, EegBandFrequencies.gammaMax);
+
+    // Convert spectral power density to physical RMS microvolt amplitudes (µV_RMS)
+    final delta = math.sqrt(math.max(0.0, rawDelta));
+    final theta = math.sqrt(math.max(0.0, rawTheta));
+    final alpha = math.sqrt(math.max(0.0, rawAlpha));
+    final beta = math.sqrt(math.max(0.0, rawBeta));
+    final gamma = math.sqrt(math.max(0.0, rawGamma));
 
     final totalPower = delta + theta + alpha + beta + gamma;
 
-    // Muse 2 MindState evaluation:
-    // Calm: Elevated relative Alpha + Theta, low Beta.
-    // Active: Elevated relative Beta + Gamma.
-    // Neutral: Balanced cognitive baseline.
+    // Authentic Muse 2 Neurofeedback MindState Classification:
+    // Focuses on the active cognitive band (4–30 Hz: Theta + Alpha + Beta)
+    // to prevent slow ocular drift / delta DC baseline from masking alpha surges.
+    final cognitivePower = theta + alpha + beta;
     MindState state = MindState.neutral;
-    if (totalPower > 0.0001) {
-      final alphaRel = alpha / totalPower;
-      final betaRel = beta / totalPower;
-      final thetaRel = theta / totalPower;
 
-      if ((alphaRel + thetaRel * 0.5) > 0.45 && betaRel < 0.25) {
+    if (cognitivePower > 0.001) {
+      final alphaRatio = alpha / (beta + 0.0001);
+      final alphaRel = alpha / cognitivePower;
+      final betaRel = beta / cognitivePower;
+
+      // Calm: Alpha rhythm dominance over beta (parasympathetic relaxation / eyes closed)
+      if (alphaRatio >= 1.15 || (alphaRel >= 0.40 && betaRel <= 0.32)) {
         state = MindState.calm;
-      } else if (betaRel > 0.35 || (betaRel + (gamma / totalPower)) > 0.45) {
+      }
+      // Active: Beta rhythm dominance over alpha (active thinking / restlessness / stress)
+      else if (alphaRatio <= 0.85 || (betaRel >= 0.38 && alphaRel <= 0.32)) {
         state = MindState.active;
-      } else {
+      }
+      // Neutral: Calm alertness / balanced baseline
+      else {
         state = MindState.neutral;
       }
     }

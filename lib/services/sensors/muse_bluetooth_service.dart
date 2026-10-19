@@ -649,16 +649,12 @@ class MuseBluetoothService {
     for (int i = 0; i < 6; i++) {
       final offset = 2 + i * 3;
       final raw = (bytes[offset] << 16) | (bytes[offset + 1] << 8) | bytes[offset + 2];
-      final metrics = _ppgEstimator.processSample(raw.toDouble(), DateTime.now());
-      if (metrics.bpm != null) {
-        _currentBpm = metrics.bpm;
-        if (_fpzFit != FitQuality.good) {
-          _fpzFit = FitQuality.good;
-          _updateHorseshoeAndStability();
-        }
-      }
-      if (metrics.rmssd != null) {
-        _currentRmssd = metrics.rmssd;
+      final metrics = _ppgEstimator.processSample(raw.toDouble());
+      _currentBpm = metrics.bpm;
+      _currentRmssd = metrics.rmssd;
+      if (metrics.bpm != null && _fpzFit != FitQuality.good) {
+        _fpzFit = FitQuality.good;
+        _updateHorseshoeAndStability();
       }
     }
   }

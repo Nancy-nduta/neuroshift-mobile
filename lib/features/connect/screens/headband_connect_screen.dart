@@ -103,10 +103,23 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
                         MuseButton(
                           label: widget.returnLabel != null
                               ? 'Headband Ready • ${widget.returnLabel}'
-                              : 'Headband Ready • Return to Practice',
-                          icon: Icons.check,
+                              : 'Headband Ready • Go to Resources',
+                          icon: widget.returnLabel != null ? Icons.check : Icons.spa,
                           width: double.infinity,
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () {
+                            if (widget.returnLabel != null) {
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                            } else {
+                              final isTherapist = ref.read(isTherapistProvider);
+                              final resourcesIndex = isTherapist ? 3 : 2;
+                              ref.read(mainNavIndexProvider.notifier).setIndex(resourcesIndex);
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                            }
+                          },
                         ),
                       ],
                     ),
