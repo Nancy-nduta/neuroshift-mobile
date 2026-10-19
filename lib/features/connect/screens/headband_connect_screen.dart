@@ -9,7 +9,12 @@ import '../../../core/widgets/muse_card.dart';
 import '../../../models/sensor_status.dart';
 
 class HeadbandConnectScreen extends ConsumerStatefulWidget {
-  const HeadbandConnectScreen({super.key});
+  final String? returnLabel;
+
+  const HeadbandConnectScreen({
+    super.key,
+    this.returnLabel,
+  });
 
   @override
   ConsumerState<HeadbandConnectScreen> createState() => _HeadbandConnectScreenState();
@@ -96,7 +101,9 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
                         ),
                         const SizedBox(height: MuseSpacing.md),
                         MuseButton(
-                          label: 'Headband Ready • Return to Practice',
+                          label: widget.returnLabel != null
+                              ? 'Headband Ready • ${widget.returnLabel}'
+                              : 'Headband Ready • Return to Practice',
                           icon: Icons.check,
                           width: double.infinity,
                           onPressed: () => Navigator.of(context).pop(),

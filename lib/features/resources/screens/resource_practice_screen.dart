@@ -17,10 +17,16 @@ import 'resource_results_screen.dart';
 
 class ResourcePracticeScreen extends ConsumerStatefulWidget {
   final ResourceItem resource;
+  final bool isPrescription;
+  final String? therapistName;
+  final String? prescriptionId;
 
   const ResourcePracticeScreen({
     super.key,
     required this.resource,
+    this.isPrescription = false,
+    this.therapistName,
+    this.prescriptionId,
   });
 
   @override
@@ -157,6 +163,9 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
           initialCalmPercent: initialCalm,
           finalCalmPercent: finalCalm,
           dominantBand: dominantBand,
+          isPrescription: widget.isPrescription,
+          therapistName: widget.therapistName,
+          prescriptionId: widget.prescriptionId,
         ),
       ),
     );
@@ -221,7 +230,11 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
               child: InkWell(
                 onTap: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const HeadbandConnectScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => HeadbandConnectScreen(
+                        returnLabel: widget.isPrescription ? 'Go Back to Practitioner' : null,
+                      ),
+                    ),
                   );
                 },
                 borderRadius: BorderRadius.circular(16),
@@ -272,6 +285,35 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (widget.isPrescription) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: MuseSpacing.md),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: MuseColors.cyanGlow.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: MuseColors.cyanGlow.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.medical_services_outlined, color: MuseColors.cyanGlow, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'CLINICAL RECOMMENDATION • From ${widget.therapistName ?? "Practitioner"}',
+                          style: const TextStyle(
+                            color: MuseColors.cyanGlow,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               // 1. YouTube In-App Player
               ClipRRect(
                 borderRadius: BorderRadius.circular(MuseSpacing.radiusLg),
@@ -437,7 +479,11 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
             width: double.infinity,
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const HeadbandConnectScreen()),
+                MaterialPageRoute(
+                  builder: (context) => HeadbandConnectScreen(
+                    returnLabel: widget.isPrescription ? 'Go Back to Practitioner' : null,
+                  ),
+                ),
               );
             },
           ),

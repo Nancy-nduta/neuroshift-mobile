@@ -12,6 +12,7 @@ import '../../../models/therapist_prescription.dart';
 import '../../resources/models/resource_item.dart';
 import '../../resources/screens/resource_practice_screen.dart';
 import '../../therapist/screens/therapist_dashboard_screen.dart';
+import 'client_therapist_chat_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -647,7 +648,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: MuseSpacing.sm),
-                      ...activePrescriptions.map((presc) => _buildPrescriptionCard(presc)),
+                      ...activePrescriptions.map((presc) => _buildPrescriptionCard(presc, grantsAsync.value ?? [])),
                       const SizedBox(height: MuseSpacing.xl),
                     ],
                   );
@@ -755,23 +756,93 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       loading: () => const SizedBox.shrink(),
                       error: (e, _) => Text('Error: $e', style: const TextStyle(color: MuseColors.roseGlow, fontSize: 11)),
                       data: (grants) {
-                        if (grants.isEmpty) {
-                          return const Text(
-                            'No care team access currently active.',
-                            style: TextStyle(color: MuseColors.textTertiary, fontSize: 11, fontStyle: FontStyle.italic),
-                          );
-                        }
+                        final activeGrants = grants.where((g) => g.status == GrantStatus.active).toList();
 
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Divider(color: MuseColors.cardBorder, height: 20),
-                            const Text(
-                              'ACTIVE & PENDING CARE GRANTS',
-                              style: TextStyle(color: MuseColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-                            ),
-                            const SizedBox(height: 6),
-                            ...grants.map((grant) => _buildGrantTile(grant)),
+                            if (activeGrants.isNotEmpty) ...[
+                              Container(
+                                margin: const EdgeInsets.only(top: 8, bottom: 8),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0F252D),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: MuseColors.cyanGlow.withValues(alpha: 0.35)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: MuseColors.cyanGlow.withValues(alpha: 0.15),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.forum_outlined, color: MuseColors.cyanGlow, size: 20),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'PRACTITIONER CHAT SPACE',
+                                            style: TextStyle(
+                                              color: MuseColors.cyanGlow,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.8,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            activeGrants.first.therapistEmail,
+                                            style: const TextStyle(
+                                              color: MuseColors.textPrimary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          const Text(
+                                            'View live chat messages and shared resources',
+                                            style: TextStyle(color: MuseColors.textSecondary, fontSize: 11),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    MuseButton(
+                                      label: 'Chat',
+                                      icon: Icons.chat,
+                                      height: 36,
+                                      variant: MuseButtonVariant.primary,
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ClientTherapistChatScreen(grant: activeGrants.first),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            if (grants.isEmpty)
+                              const Text(
+                                'No care team access currently active.',
+                                style: TextStyle(color: MuseColors.textTertiary, fontSize: 11, fontStyle: FontStyle.italic),
+                              )
+                            else ...[
+                              const Divider(color: MuseColors.cardBorder, height: 20),
+                              const Text(
+                                'ACTIVE & PENDING CARE GRANTS',
+                                style: TextStyle(color: MuseColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                              ),
+                              const SizedBox(height: 6),
+                              ...grants.map((grant) => _buildGrantTile(grant)),
+                            ],
                           ],
                         );
                       },
@@ -1110,11 +1181,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildPrescriptionCard(TherapistPrescription presc) {
+  Widget _buildPrescriptionCard(TherapistPrescription presc, List<TherapistAccessGrant> grants) {
     final catalogMatch = ResourceItem.catalog.firstWhere(
       (r) => r.id == presc.resourceId,
       orElse: () => ResourceItem.catalog.first,
     );
+
+    // Find active grant corresponding to this care relationship
+    final activeGrant = grants.where((g) => g.status == GrantStatus.active).firstOrNull;
 
     return MuseCard(
       borderColor: MuseColors.cyanGlow.withValues(alpha: 0.4),
@@ -1156,10 +1230,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => ResourcePracticeScreen(resource: catalogMatch)),
+                MaterialPageRoute(
+                  builder: (_) => ResourcePracticeScreen(
+                    resource: catalogMatch,
+                    isPrescription: true,
+                    therapistName: presc.therapistName,
+                    prescriptionId: presc.id,
+                  ),
+                ),
               );
             },
           ),
+          if (activeGrant != null) ...[
+            const SizedBox(height: 8),
+            MuseButton(
+              label: 'Chat with ${presc.therapistName}',
+              icon: Icons.chat_bubble_outline,
+              variant: MuseButtonVariant.outline,
+              width: double.infinity,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ClientTherapistChatScreen(grant: activeGrant),
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -1215,6 +1313,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
             ),
           ),
+          if (isActive)
+            TextButton.icon(
+              icon: const Icon(Icons.chat_bubble_outline, size: 14, color: MuseColors.cyanGlow),
+              label: const Text('Chat', style: TextStyle(color: MuseColors.cyanGlow, fontSize: 12, fontWeight: FontWeight.bold)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ClientTherapistChatScreen(grant: grant),
+                  ),
+                );
+              },
+            ),
           if (!isRevoked)
             TextButton(
               onPressed: () async {

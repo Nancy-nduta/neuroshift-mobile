@@ -24,6 +24,9 @@ class ResourceResultsScreen extends ConsumerStatefulWidget {
   final double? initialCalmPercent;
   final double? finalCalmPercent;
   final String? dominantBand;
+  final bool isPrescription;
+  final String? therapistName;
+  final String? prescriptionId;
 
   const ResourceResultsScreen({
     super.key,
@@ -38,6 +41,9 @@ class ResourceResultsScreen extends ConsumerStatefulWidget {
     this.initialCalmPercent,
     this.finalCalmPercent,
     this.dominantBand,
+    this.isPrescription = false,
+    this.therapistName,
+    this.prescriptionId,
   });
 
   @override
@@ -197,9 +203,11 @@ class _ResourceResultsScreenState extends ConsumerState<ResourceResultsScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                systemDecidedRecommend
-                    ? 'Saved to Firestore! "${widget.resource.title}" scored ${evaluation.performanceScore.toInt()}% and stays prioritized at the top.'
-                    : 'Saved to Firestore! "${widget.resource.title}" scored ${evaluation.performanceScore.toInt()}% and was demoted down.',
+                widget.isPrescription
+                    ? 'Session saved & shared with ${widget.therapistName ?? "Practitioner"}! Results recorded in clinical dashboard.'
+                    : (systemDecidedRecommend
+                        ? 'Saved to Firestore! "${widget.resource.title}" scored ${evaluation.performanceScore.toInt()}% and stays prioritized at the top.'
+                        : 'Saved to Firestore! "${widget.resource.title}" scored ${evaluation.performanceScore.toInt()}% and was demoted down.'),
                 style: const TextStyle(color: MuseColors.textPrimary, fontSize: 13),
               ),
             ),
@@ -233,6 +241,34 @@ class _ResourceResultsScreenState extends ConsumerState<ResourceResultsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (widget.isPrescription) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: MuseColors.cyanGlow.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: MuseColors.cyanGlow.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.medical_services_outlined, color: MuseColors.cyanGlow, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Prescribed by ${widget.therapistName ?? "Practitioner"} • Telemetry Shared',
+                          style: const TextStyle(
+                            color: MuseColors.cyanGlow,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: MuseSpacing.md),
+              ],
+
               // 1. Detected Mood & Telemetry Report Card
               if (widget.usedHeadband && widget.calmPercent > 0)
                 _buildAuthenticHeadbandReportCard(inferredMood, deltaCalm)
@@ -375,7 +411,9 @@ class _ResourceResultsScreenState extends ConsumerState<ResourceResultsScreen> {
 
               // 5. Submit Action Button
               MuseButton(
-                label: 'Save & Update Recommendations',
+                label: widget.isPrescription
+                    ? 'Complete Prescribed Session • Go Back to Practitioner'
+                    : 'Save & Update Recommendations',
                 icon: Icons.check,
                 isLoading: _isSaving,
                 width: double.infinity,
