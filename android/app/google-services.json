@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "201008218780",
+    "project_id": "neuroshift-dev",
+    "storage_bucket": "neuroshift-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:201008218780:android:76ec4e9994db71de096359",
+        "android_client_info": {
+          "package_name": "com.neuroshift.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "201008218780-71cfdk49diat5j8octlcjv6dd5drnrqa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neuroshift.app",
+            "certificate_hash": "837fcf828a9a88d98a2e5af555a92511c7d94ff5"
+          }
+        },
+        {
+          "client_id": "201008218780-q00g8r0016k6fkk50n8p8bnvelhks652.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4ISfAnrsd0_rzCdATpo_XJIcdjOYj29o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "201008218780-q00g8r0016k6fkk50n8p8bnvelhks652.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
