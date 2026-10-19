@@ -29,10 +29,28 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen>
   String _timeframe = 'All'; // 'Day', 'Week', 'Month', 'All'
   bool _isSending = false;
 
+  late Stream<List<MeditationSession>> _sessionsStream;
+  late Stream<List<TherapistPrescription>> _prescriptionsStream;
+  late Stream<List<TherapistMessage>> _messagesStream;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initStreams();
+  }
+
+  void _initStreams() {
+    final repo = ref.read(therapistRepositoryProvider);
+    _sessionsStream = repo.streamClientSessions(widget.grant.clientId);
+    _prescriptionsStream = repo.streamPrescriptionsForClient(widget.grant.clientId);
+    _messagesStream = repo.streamMessages(widget.grant.id);
+  }
+
+  void _refreshStreams() {
+    setState(() {
+      _initStreams();
+    });
   }
 
   @override
@@ -338,13 +356,43 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen>
 
   // ==================== 1. INSIGHT REPORTS & TELEMETRY ====================
   Widget _buildInsightsTab() {
-    final sessionsStream = ref.watch(therapistRepositoryProvider).streamClientSessions(widget.grant.clientId);
-
     return StreamBuilder<List<MeditationSession>>(
-      stream: sessionsStream,
+      stream: _sessionsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: MuseColors.cyanGlow));
+        }
+
+        if (snapshot.hasError) {
+          debugPrint('Error streaming client sessions: ${snapshot.error}');
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(MuseSpacing.xl),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: MuseColors.roseGlow, size: 40),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Unable to Load Patient Insights',
+                    style: TextStyle(color: MuseColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: MuseColors.roseGlow, fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  MuseButton(
+                    label: 'Retry',
+                    variant: MuseButtonVariant.secondary,
+                    onPressed: _refreshStreams,
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
         final allSessions = snapshot.data ?? [];
@@ -728,8 +776,6 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen>
 
   // ==================== 2. PRESCRIPTIONS & ADHERENCE ====================
   Widget _buildPrescriptionsTab() {
-    final prescriptionsStream = ref.watch(therapistRepositoryProvider).streamPrescriptionsForClient(widget.grant.clientId);
-
     return Column(
       children: [
         // Prescribe Button Banner
@@ -744,10 +790,42 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen>
         ),
         Expanded(
           child: StreamBuilder<List<TherapistPrescription>>(
-            stream: prescriptionsStream,
+            stream: _prescriptionsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator(color: MuseColors.cyanGlow));
+              }
+
+              if (snapshot.hasError) {
+                debugPrint('Error streaming client prescriptions: ${snapshot.error}');
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(MuseSpacing.xl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, color: MuseColors.roseGlow, size: 40),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Unable to Load Prescriptions',
+                          style: TextStyle(color: MuseColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: MuseColors.roseGlow, fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        MuseButton(
+                          label: 'Retry',
+                          variant: MuseButtonVariant.secondary,
+                          onPressed: _refreshStreams,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               }
 
               final list = snapshot.data ?? [];
@@ -955,16 +1033,46 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen>
 
   // ==================== 3. IN-APP MESSAGING & CHAT ====================
   Widget _buildChatTab() {
-    final messagesStream = ref.watch(therapistRepositoryProvider).streamMessages(widget.grant.id);
-
     return Column(
       children: [
         Expanded(
           child: StreamBuilder<List<TherapistMessage>>(
-            stream: messagesStream,
+            stream: _messagesStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator(color: MuseColors.cyanGlow));
+              }
+
+              if (snapshot.hasError) {
+                debugPrint('Error streaming messages: ${snapshot.error}');
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(MuseSpacing.xl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, color: MuseColors.roseGlow, size: 40),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Unable to Load Messages',
+                          style: TextStyle(color: MuseColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: MuseColors.roseGlow, fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        MuseButton(
+                          label: 'Retry',
+                          variant: MuseButtonVariant.secondary,
+                          onPressed: _refreshStreams,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               }
 
               final messages = snapshot.data ?? [];

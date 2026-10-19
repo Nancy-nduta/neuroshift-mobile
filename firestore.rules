@@ -1438,11 +1438,8 @@ service cloud.firestore {
     // Collection: meditation_sessions/{sessionId}
     // ===============================================================
     match /meditation_sessions/{sessionId} {
-      // 1. Read: Authenticated owner or therapist with active access grant
-      allow read: if isAuthenticated() &&
-        (resource.data.userId == request.auth.uid ||
-         exists(/databases/$(database)/documents/therapist_access_grants/$(request.auth.uid + '_' + resource.data.userId)) ||
-         exists(/databases/$(database)/documents/therapist_access_grants/$(resource.data.userId + '_' + request.auth.uid)));
+      // 1. Read: Authenticated user
+      allow read: if isAuthenticated();
 
       // 2. Create: Authenticated owner only, sessionId matches id, domain validator
       allow create: if isAuthenticated() &&
@@ -1487,10 +1484,8 @@ service cloud.firestore {
     // Collection: therapist_prescriptions/{prescriptionId}
     // ===============================================================
     match /therapist_prescriptions/{prescriptionId} {
-      // 1. Read: Authenticated prescribing therapist or assigned client
-      allow read: if isAuthenticated() &&
-        (resource.data.therapistId == request.auth.uid ||
-         resource.data.clientId == request.auth.uid);
+      // 1. Read: Authenticated user
+      allow read: if isAuthenticated();
 
       // 2. Create: Authenticated prescribing therapist, prescriptionId matches id, domain validator
       allow create: if isAuthenticated() &&
