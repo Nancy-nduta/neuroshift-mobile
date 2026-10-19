@@ -2,20 +2,13 @@
 
 <div align="center">
 
-![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%7C%20Auth-FFCA28?logo=firebase&logoColor=black)
-![BLE](https://img.shields.io/badge/Bluetooth%20LE-4.2%2B-0082FC?logo=bluetooth&logoColor=white)
-![Reinforcement Learning](https://img.shields.io/badge/Reinforcement%20Learning-Contextual%20Bandit%20(UCB1)-8A2BE2)
-![Architecture](https://img.shields.io/badge/Architecture-Clean%20%7C%20Riverpod-10B981)
-![Commits](https://img.shields.io/badge/Commits-100%20Semantic%20Commits-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+
 
 **Closed-Loop Multimodal Neurofeedback, Adaptive Psychoacoustic Neuro-Modulation, & Collaborative Tele-Therapist Clinical Portal**
 
-*Strathmore University — School of Computing and Engineering Sciences — Final Year Computer Science Project II*
+*Strathmore University — School of Computing and Engineering Sciences — Final Year Computer Science Project *
 
-**Author:** Nancy Nduta (Student ID: 166993) | **Supervisor:** Dr. Stephen Obonyo
+**Student:** Nancy Nduta (Student ID: 166993) | **Supervisor:** Dr. Stephen Obonyo
 
 </div>
 
