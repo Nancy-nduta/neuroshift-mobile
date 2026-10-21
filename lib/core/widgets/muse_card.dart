@@ -30,15 +30,21 @@ class MuseCard extends StatelessWidget {
     final cardContent = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: backgroundColor ?? MuseColors.cardSurface,
+        color: backgroundColor ?? const Color(0xFF0F1523),
         borderRadius: BorderRadius.circular(borderRadius),
         border: border,
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Colors.black26,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
+          if (borderColor != null)
+            BoxShadow(
+              color: borderColor!.withValues(alpha: 0.12),
+              blurRadius: 18,
+              spreadRadius: 1,
+            ),
         ],
       ),
       child: child,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neuroshift_mobile/core/providers/app_providers.dart';
 import 'package:neuroshift_mobile/core/theme/muse_colors.dart';
 import 'package:neuroshift_mobile/core/theme/muse_spacing.dart';
+import 'package:neuroshift_mobile/core/widgets/bioluminescent_neural_orb.dart';
 import 'package:neuroshift_mobile/core/widgets/muse_button.dart';
 import 'package:neuroshift_mobile/features/meditate/screens/session_results_screen.dart';
 import 'package:neuroshift_mobile/models/experience_mode.dart';
@@ -24,11 +25,7 @@ class LiveMeditationScreen extends ConsumerStatefulWidget {
   ConsumerState<LiveMeditationScreen> createState() => _LiveMeditationScreenState();
 }
 
-class _LiveMeditationScreenState extends ConsumerState<LiveMeditationScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-
+class _LiveMeditationScreenState extends ConsumerState<LiveMeditationScreen> {
   Timer? _sessionTimer;
   int _secondsRemaining = 0;
   int _secondsElapsed = 0;
@@ -50,15 +47,6 @@ class _LiveMeditationScreenState extends ConsumerState<LiveMeditationScreen>
   void initState() {
     super.initState();
     _secondsRemaining = widget.durationMinutes * 60;
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 4000), // 4-second breathing cycle
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween<double>(begin: 0.85, end: 1.15).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOutSine),
-    );
 
     // Start Muse 2 stream
     final muse = ref.read(museServiceProvider);
@@ -112,7 +100,6 @@ class _LiveMeditationScreenState extends ConsumerState<LiveMeditationScreen>
   void dispose() {
     _sessionTimer?.cancel();
     _readingSub?.cancel();
-    _pulseController.dispose();
     ref.read(museServiceProvider).stopSession();
     super.dispose();
   }
@@ -230,61 +217,30 @@ class _LiveMeditationScreenState extends ConsumerState<LiveMeditationScreen>
 
             const Spacer(),
 
-            // Central Breathing Biofeedback Orb / Aura
-            AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _pulseAnimation.value,
-                  child: Container(
-                    width: 220,
-                    height: 220,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          auraColor.withValues(alpha: 0.8),
-                          auraColor.withValues(alpha: 0.25),
-                          Colors.transparent,
-                        ],
-                        stops: const [0.2, 0.65, 1.0],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: auraColor.withValues(alpha: 0.4),
-                          blurRadius: 40,
-                          spreadRadius: 8,
-                        ),
-                      ],
+            // Central Bioluminescent Neural Orb / Biofeedback Core with Atmospheric Glow
+            Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: auraColor.withValues(alpha: 0.12),
+                      blurRadius: 70,
+                      spreadRadius: 25,
                     ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            stateLabel,
-                            style: TextStyle(
-                              color: auraColor,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 3.0,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'BREATHE',
-                            style: TextStyle(
-                              color: MuseColors.textSecondary,
-                              fontSize: 11,
-                              letterSpacing: 2.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
+                  ],
+                ),
+                child: BioluminescentNeuralOrb(
+                  mindState: reading.mindState,
+                  alphaPower: reading.alpha,
+                  betaPower: reading.beta,
+                  heartRateBpm: reading.heartRateBpm,
+                  size: 240,
+                  centerLabel: stateLabel,
+                  subLabel: 'BREATHE',
+                  showTelemetryRings: true,
+                ),
+              ),
             ),
 
             const Spacer(),

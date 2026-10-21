@@ -290,43 +290,56 @@ class _Muse2HorseshoePainter extends CustomPainter {
 
     final isGood = quality == FitQuality.good;
 
-    // Outer Glow
+    // Outer Bioluminescent Halo
     if (isGood) {
       final glowPaint = Paint()
+        ..color = MuseColors.fitGood.withValues(alpha: 0.65)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+      canvas.drawCircle(nodeCenter, 18, glowPaint);
+
+      // Holographic cybernetic outer target ring
+      final holoRing = Paint()
         ..color = MuseColors.fitGood.withValues(alpha: 0.5)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
-      canvas.drawCircle(nodeCenter, 15, glowPaint);
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0;
+      canvas.drawCircle(nodeCenter, 14.5, holoRing);
     } else if (quality == FitQuality.adjust) {
       final glowPaint = Paint()
-        ..color = MuseColors.fitAdjust.withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-      canvas.drawCircle(nodeCenter, 13, glowPaint);
+        ..color = MuseColors.fitAdjust.withValues(alpha: 0.40)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+      canvas.drawCircle(nodeCenter, 14, glowPaint);
     }
 
-    // Metallic Sensor Housing Ring
+    // Metallic Cyber Sensor Housing Ring
     final housingPaint = Paint()
-      ..color = MuseColors.cardSurface
+      ..color = const Color(0xFF0A0F1D)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(nodeCenter, 11, housingPaint);
 
     final housingBorderPaint = Paint()
-      ..color = isGood ? MuseColors.fitGood : MuseColors.cardBorder
+      ..color = isGood ? MuseColors.fitGood : (quality == FitQuality.adjust ? MuseColors.fitAdjust : MuseColors.cardBorder)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = isGood ? 2.0 : 1.5;
+      ..strokeWidth = isGood ? 2.2 : 1.5;
     canvas.drawCircle(nodeCenter, 11, housingBorderPaint);
 
-    // Inner Active Electrode Core Dot
+    // Inner Active Electrode Core Dot with Radial Energy Gradient
     final corePaint = Paint()
-      ..color = quality.color
-      ..style = PaintingStyle.fill;
+      ..shader = RadialGradient(
+        colors: [
+          Colors.white,
+          quality.color,
+          quality.color.withValues(alpha: 0.8),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: nodeCenter, radius: 7.5));
     canvas.drawCircle(nodeCenter, 7.5, corePaint);
 
     // Specular Reflection highlight when green/good
     if (isGood) {
       final specPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.7)
+        ..color = Colors.white.withValues(alpha: 0.85)
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(cx - 2.2, cy - 2.2), 2.0, specPaint);
+      canvas.drawCircle(Offset(cx - 2.2, cy - 2.2), 2.2, specPaint);
     }
   }
 

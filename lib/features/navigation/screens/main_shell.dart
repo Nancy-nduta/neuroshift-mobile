@@ -103,19 +103,26 @@ class _MainShellState extends ConsumerState<MainShell> {
         children: screens,
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: MuseColors.spaceBackground,
-          border: Border(
-            top: BorderSide(color: MuseColors.cardBorder, width: 0.8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A0E1A).withValues(alpha: 0.96),
+          border: const Border(
+            top: BorderSide(color: Color(0x334DF0FF), width: 0.8),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: MuseColors.cyanGlow.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: NavigationBar(
           selectedIndex: safeIndex,
           onDestinationSelected: _onTabSelected,
-          backgroundColor: MuseColors.spaceBackground,
+          backgroundColor: Colors.transparent,
           indicatorColor: isTherapist && safeIndex == 0
-              ? MuseColors.mysticPurple.withValues(alpha: 0.2)
-              : MuseColors.cyanGlow.withValues(alpha: 0.15),
+              ? MuseColors.mysticPurple.withValues(alpha: 0.25)
+              : MuseColors.cyanGlow.withValues(alpha: 0.2),
           destinations: destinations,
         ),
       ),

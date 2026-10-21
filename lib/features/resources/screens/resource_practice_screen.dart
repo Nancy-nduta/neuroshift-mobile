@@ -7,6 +7,7 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/theme/muse_colors.dart';
 import '../../../core/theme/muse_spacing.dart';
+import '../../../core/widgets/bioluminescent_neural_orb.dart';
 import '../../../core/widgets/muse_button.dart';
 import '../../../core/widgets/muse_card.dart';
 import '../../../models/sensor_status.dart';
@@ -472,6 +473,19 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
             ),
           ),
           const SizedBox(height: MuseSpacing.md),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: MuseSpacing.xs),
+              child: BioluminescentNeuralOrb(
+                mindState: MindState.neutral,
+                size: 140,
+                centerLabel: 'STANDBY',
+                subLabel: 'MUSE 2 READY',
+                showTelemetryRings: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: MuseSpacing.md),
           MuseButton(
             label: 'Connect Muse 2 Headband',
             icon: Icons.bluetooth_searching,
@@ -497,6 +511,29 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Central Bioluminescent Neural Reactor Hero
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: MuseSpacing.md),
+            child: BioluminescentNeuralOrb(
+              mindState: (!status.isConnected || status.packetsReceived < 15)
+                  ? MindState.neutral
+                  : signal.mindState,
+              alphaPower: signal.alpha,
+              betaPower: signal.beta,
+              heartRateBpm: signal.heartRateBpm ?? status.heartRateBpm,
+              size: 200,
+              centerLabel: (!status.isConnected || status.packetsReceived < 15)
+                  ? 'CALIBRATING'
+                  : signal.mindState.name.toUpperCase(),
+              subLabel: status.isConnected
+                  ? 'NEURAL CORE • ${status.packetsReceived} PKTS'
+                  : 'AWAITING HARDWARE',
+              showTelemetryRings: true,
+            ),
+          ),
+        ),
+
         // Biometric summary bar: Mind State, Heart Rate BPM, Stillness
         Row(
           children: [
