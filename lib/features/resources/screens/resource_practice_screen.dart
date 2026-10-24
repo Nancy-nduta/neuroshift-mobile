@@ -1,13 +1,15 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../../core/providers/app_providers.dart';
 import '../../../core/theme/muse_colors.dart';
 import '../../../core/theme/muse_spacing.dart';
 import '../../../core/widgets/bioluminescent_neural_orb.dart';
+import '../../../core/widgets/cybernetic_heart_rate_visualizer.dart';
+import '../../../core/widgets/holographic_brainwave_visualizer.dart';
 import '../../../core/widgets/muse_button.dart';
 import '../../../core/widgets/muse_card.dart';
 import '../../../models/sensor_status.dart';
@@ -34,10 +36,8 @@ class ResourcePracticeScreen extends ConsumerStatefulWidget {
   ConsumerState<ResourcePracticeScreen> createState() => _ResourcePracticeScreenState();
 }
 
-class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
-    with SingleTickerProviderStateMixin {
+class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen> {
   late final YoutubePlayerController _playerController;
-  late final AnimationController _waveAnimController;
 
   Timer? _sessionTimer;
   int _elapsedSeconds = 0;
@@ -57,22 +57,18 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
   void initState() {
     super.initState();
 
-    _playerController = YoutubePlayerController(
+    _playerController = YoutubePlayerController.fromVideoId(
+      videoId: widget.resource.youtubeVideoId,
+      autoPlay: true,
       params: const YoutubePlayerParams(
         showControls: true,
         showFullscreenButton: true,
         mute: false,
         loop: false,
         enableCaption: false,
+        showVideoAnnotations: false,
       ),
     );
-
-    _playerController.loadVideoById(videoId: widget.resource.youtubeVideoId);
-
-    _waveAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat();
 
     _startTimer();
   }
@@ -89,7 +85,6 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
   @override
   void dispose() {
     _sessionTimer?.cancel();
-    _waveAnimController.dispose();
     _playerController.close();
     super.dispose();
   }
@@ -327,7 +322,44 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
                 ),
               ),
 
-              const SizedBox(height: MuseSpacing.md),
+              // YouTube External App Fallback
+              Padding(
+                padding: const EdgeInsets.only(top: 6.0, bottom: MuseSpacing.sm),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    InkWell(
+                      onTap: () async {
+                        final uri = Uri.parse(
+                          'https://www.youtube.com/watch?v=${widget.resource.youtubeVideoId}',
+                        );
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.open_in_new, size: 12, color: MuseColors.cyanGlow),
+                            SizedBox(width: 4),
+                            Text(
+                              'Open in YouTube App',
+                              style: TextStyle(
+                                color: MuseColors.cyanGlow,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               // 2. Resource Title & Metadata
               Row(
@@ -506,12 +538,12 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
     );
   }
 
-  /// Real-time live brainwave spectrum and biometrics when headband is connected
+  /// Real-time live brainwave spectrum, ECG cardio dynamics, and biometrics when headband is connected
   Widget _buildLiveTelemetrySection(SignalReading signal, HeadbandStatus status) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Central Bioluminescent Neural Reactor Hero
+        // 1. Central Bioluminescent Neural Reactor Hero
         Center(
           child: Padding(
             padding: const EdgeInsets.only(bottom: MuseSpacing.md),
@@ -534,444 +566,26 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
           ),
         ),
 
-        // Biometric summary bar: Mind State, Heart Rate BPM, Stillness
-        Row(
-          children: [
-            // Mind state pill
-            Expanded(
-              child: _buildBiometricBadge(
-                label: 'MIND STATE',
-                value: (!status.isConnected || status.packetsReceived < 15)
-                    ? 'CALIBRATING'
-                    : signal.mindState.name.toUpperCase(),
-                icon: Icons.psychology,
-                color: (!status.isConnected || status.packetsReceived < 15)
-                    ? MuseColors.bodyAmber
-                    : _getMindStateColor(signal.mindState),
-              ),
-            ),
-            const SizedBox(width: MuseSpacing.sm),
-            // Heart rate BPM
-            Expanded(
-              child: _buildBiometricBadge(
-                label: 'HEART RATE',
-                value: (signal.heartRateBpm != null && signal.heartRateBpm! > 0)
-                    ? '${signal.heartRateBpm} BPM'
-                    : (status.heartRateBpm != null && status.heartRateBpm! > 0)
-                        ? '${status.heartRateBpm} BPM'
-                        : (status.isConnected ? 'Measuring...' : '-- BPM'),
-                icon: Icons.favorite,
-                color: MuseColors.roseGlow,
-              ),
-            ),
-            const SizedBox(width: MuseSpacing.sm),
-            // Stillness Score
-            Expanded(
-              child: _buildBiometricBadge(
-                label: 'STILLNESS',
-                value: '${signal.stillnessScore.toStringAsFixed(0)}%',
-                icon: Icons.accessibility_new,
-                color: MuseColors.breathMint,
-              ),
-            ),
-          ],
+        // 2. High-Fidelity Cybernetic ECG Heart Rate & Autonomic Coherence HUD
+        CyberneticHeartRateVisualizer(
+          heartRateBpm: signal.heartRateBpm ?? status.heartRateBpm,
+          hrvRmssd: signal.hrvRmssd,
+          isConnected: status.isConnected,
         ),
 
         const SizedBox(height: MuseSpacing.md),
 
-        // 5-Band Live EEG Spectrum Visualizer Card
-        MuseCard(
-          borderColor: MuseColors.mindCyan.withValues(alpha: 0.3),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.waves, color: MuseColors.mindCyan, size: 18),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'LIVE BRAINWAVE SPECTRUM',
-                    style: TextStyle(
-                      color: MuseColors.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: MuseColors.mindCyan.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      status.isConnected
-                          ? 'MUSE 2 LIVE • ${status.packetsReceived} PKTS'
-                          : 'AWAITING SENSORS',
-                      style: const TextStyle(
-                        color: MuseColors.mindCyan,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: MuseSpacing.md),
-
-              // Animated multi-colored brainwave oscilloscope
-              SizedBox(
-                height: 110,
-                width: double.infinity,
-                child: AnimatedBuilder(
-                  animation: _waveAnimController,
-                  builder: (context, child) {
-                    return CustomPaint(
-                      painter: _BrainwaveSpectrumPainter(
-                        progress: _waveAnimController.value,
-                        alpha: signal.alpha,
-                        beta: signal.beta,
-                        theta: signal.theta,
-                        delta: signal.delta,
-                        gamma: signal.gamma,
-                      ),
-                      size: Size.infinite,
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: MuseSpacing.md),
-              const Divider(color: MuseColors.cardBorder, height: 1),
-              const SizedBox(height: MuseSpacing.md),
-
-              // 5 Individual Wave Bands with distinct colors and live microvolt powers
-              _buildWaveBandRow(
-                band: 'ALPHA',
-                range: '8–13 Hz',
-                meaning: 'Calm & Relaxation',
-                power: signal.alpha,
-                color: const Color(0xFF00E5FF), // Cyan
-              ),
-              const SizedBox(height: 8),
-              _buildWaveBandRow(
-                band: 'BETA',
-                range: '13–30 Hz',
-                meaning: 'Active Focus & Thinking',
-                power: signal.beta,
-                color: const Color(0xFF9D4EDD), // Purple
-              ),
-              const SizedBox(height: 8),
-              _buildWaveBandRow(
-                band: 'THETA',
-                range: '4–8 Hz',
-                meaning: 'Deep Meditation & Flow',
-                power: signal.theta,
-                color: const Color(0xFFFFB703), // Amber / Gold
-              ),
-              const SizedBox(height: 8),
-              _buildWaveBandRow(
-                band: 'DELTA',
-                range: '0.5–4 Hz',
-                meaning: 'Rest & Deep Stillness',
-                power: signal.delta,
-                color: const Color(0xFF3B82F6), // Deep Blue
-              ),
-              const SizedBox(height: 8),
-              _buildWaveBandRow(
-                band: 'GAMMA',
-                range: '30–50 Hz',
-                meaning: 'Insight & Heightened Perception',
-                power: signal.gamma,
-                color: const Color(0xFFEC4899), // Pink
-              ),
-            ],
-          ),
+        // 3. Multi-Channel Quantum Brainwave Oscilloscope & Spectral Power Visualizer
+        HolographicBrainwaveVisualizer(
+          alpha: signal.alpha,
+          beta: signal.beta,
+          theta: signal.theta,
+          delta: signal.delta,
+          gamma: signal.gamma,
+          isConnected: status.isConnected,
+          packetsReceived: status.packetsReceived,
         ),
       ],
     );
-  }
-
-  Color _getMindStateColor(MindState state) {
-    switch (state) {
-      case MindState.calm:
-        return MuseColors.mindCyan;
-      case MindState.neutral:
-        return MuseColors.textSecondary;
-      case MindState.active:
-        return MuseColors.roseGlow;
-    }
-  }
-
-  Widget _buildBiometricBadge({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: color),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: MuseColors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWaveBandRow({
-    required String band,
-    required String range,
-    required String meaning,
-    required double power,
-    required Color color,
-  }) {
-    // Normalization for visual progress bar (microvolts typical scale: 0 - 30 uV)
-    final clampedProgress = (power <= 0.05) ? 0.0 : (power / 25.0).clamp(0.0, 1.0);
-
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.5),
-                blurRadius: 4,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 52,
-          child: Text(
-            band,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    meaning,
-                    style: const TextStyle(
-                      color: MuseColors.textSecondary,
-                      fontSize: 10,
-                    ),
-                  ),
-                  Text(
-                    '${power.toStringAsFixed(1)} µV',
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 3),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: clampedProgress,
-                  backgroundColor: MuseColors.cardBorder,
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
-                  minHeight: 4,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Custom painter rendering multi-colored live sine waves representing
-/// Alpha, Beta, Theta, Delta, and Gamma brainwave frequencies in real time.
-class _BrainwaveSpectrumPainter extends CustomPainter {
-  final double progress;
-  final double alpha;
-  final double beta;
-  final double theta;
-  final double delta;
-  final double gamma;
-
-  _BrainwaveSpectrumPainter({
-    required this.progress,
-    required this.alpha,
-    required this.beta,
-    required this.theta,
-    required this.delta,
-    required this.gamma,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final midY = size.height / 2;
-
-    // Draw baseline grid lines
-    final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..strokeWidth = 1.0;
-
-    canvas.drawLine(Offset(0, midY), Offset(size.width, midY), gridPaint);
-    canvas.drawLine(Offset(0, size.height * 0.25), Offset(size.width, size.height * 0.25), gridPaint);
-    canvas.drawLine(Offset(0, size.height * 0.75), Offset(size.width, size.height * 0.75), gridPaint);
-
-    final hasSignal = (alpha > 0.05 || beta > 0.05 || theta > 0.05 || delta > 0.05 || gamma > 0.05);
-
-    // Amplitudes scale directly with real live microvolts (µV)
-    // When no signal is present yet, flatline or idle so there are no fake placeholders
-    final dAmp = hasSignal ? (delta.clamp(0.0, 35.0) * 0.9) : 0.0;
-    final tAmp = hasSignal ? (theta.clamp(0.0, 35.0) * 1.0) : 0.0;
-    final aAmp = hasSignal ? (alpha.clamp(0.0, 35.0) * 1.25) : 0.0;
-    final bAmp = hasSignal ? (beta.clamp(0.0, 35.0) * 0.85) : 0.0;
-    final gAmp = hasSignal ? (gamma.clamp(0.0, 35.0) * 0.6) : 0.0;
-
-    // 1. Delta (0.5–4 Hz: Slow, deep rest - Blue)
-    _drawWave(
-      canvas: canvas,
-      size: size,
-      color: const Color(0xFF3B82F6).withValues(alpha: hasSignal ? 0.8 : 0.2),
-      amplitude: dAmp,
-      frequency: 1.5,
-      phase: progress * 2 * math.pi * 0.5,
-      strokeWidth: 2.0,
-    );
-
-    // 2. Theta (4–8 Hz: Meditative flow - Amber)
-    _drawWave(
-      canvas: canvas,
-      size: size,
-      color: const Color(0xFFFFB703).withValues(alpha: hasSignal ? 0.85 : 0.2),
-      amplitude: tAmp,
-      frequency: 2.8,
-      phase: progress * 2 * math.pi * 0.8,
-      strokeWidth: 2.0,
-    );
-
-    // 3. Alpha (8–13 Hz: Calm awareness - Cyan, primary)
-    _drawWave(
-      canvas: canvas,
-      size: size,
-      color: const Color(0xFF00E5FF).withValues(alpha: hasSignal ? 1.0 : 0.3),
-      amplitude: aAmp,
-      frequency: 4.5,
-      phase: progress * 2 * math.pi * 1.2,
-      strokeWidth: 2.5,
-    );
-
-    // 4. Beta (13–30 Hz: Active thinking - Purple)
-    _drawWave(
-      canvas: canvas,
-      size: size,
-      color: const Color(0xFF9D4EDD).withValues(alpha: hasSignal ? 0.85 : 0.2),
-      amplitude: bAmp,
-      frequency: 7.0,
-      phase: progress * 2 * math.pi * 1.8,
-      strokeWidth: 1.8,
-    );
-
-    // 5. Gamma (30–50 Hz: Fast cognition - Pink)
-    _drawWave(
-      canvas: canvas,
-      size: size,
-      color: const Color(0xFFEC4899).withValues(alpha: hasSignal ? 0.75 : 0.2),
-      amplitude: gAmp,
-      frequency: 11.0,
-      phase: progress * 2 * math.pi * 2.4,
-      strokeWidth: 1.5,
-    );
-  }
-
-  void _drawWave({
-    required Canvas canvas,
-    required Size size,
-    required Color color,
-    required double amplitude,
-    required double frequency,
-    required double phase,
-    required double strokeWidth,
-  }) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    final midY = size.height / 2;
-
-    for (double x = 0; x <= size.width; x += 2.0) {
-      final normalizedX = x / size.width;
-      // Window function to taper off at left and right edges nicely
-      final window = math.sin(normalizedX * math.pi);
-      final y = midY + math.sin(normalizedX * frequency * 2 * math.pi + phase) * amplitude * window;
-
-      if (x == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _BrainwaveSpectrumPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.alpha != alpha ||
-        oldDelegate.beta != beta ||
-        oldDelegate.theta != theta ||
-        oldDelegate.delta != delta ||
-        oldDelegate.gamma != gamma;
   }
 }
