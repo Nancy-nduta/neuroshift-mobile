@@ -83,6 +83,13 @@ class AiWellnessService {
     return null;
   }
 
+  static ResourceItem? _safeFindResource(String id) {
+    for (final item in ResourceItem.catalog) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
   static AiChatMessage _generateClinicalResponse(String prompt) {
     String text;
     ResourceItem? resource;
@@ -102,7 +109,7 @@ class AiWellnessService {
           '• 2 scents around you.\n'
           '• 1 deep breath of gratitude.\n\n'
           'Your nervous system is just trying to protect you. You are in a safe space.';
-      resource = ResourceItem.catalog.firstWhere((r) => r.id == 'med_03'); // 10-Min Meditation for Anxiety
+      resource = _safeFindResource('med_03'); // 10-Min Meditation for Anxiety
       chips = ['Teach me Box Breathing', 'Explain Alpha brainwaves', 'Start Anxiety Meditation'];
     }
     // 2. Brainwaves & EEG Explanation
@@ -118,7 +125,7 @@ class AiWellnessService {
           'Slowest high-amplitude waves. Essential for deep stage-3 NREM physical regeneration and memory consolidation.\n\n'
           '• **γ Gamma (30–100 Hz) — Peak Cognition**:\n'
           'Ultra-fast microvolts synchronizing diverse brain regions for high-level insight and sensory binding.';
-      resource = ResourceItem.catalog.firstWhere((r) => r.id == 'noise_01'); // Alpha wave resonance
+      resource = _safeFindResource('noise_01'); // Alpha wave resonance
       chips = ['How to increase Alpha waves?', 'What is HRV & Vagal Tone?', 'Practice Alpha entrainment'];
     }
     // 3. Heart Rate & Heart Rate Variability (HRV / RMSSD)
@@ -132,7 +139,7 @@ class AiWellnessService {
           '• Resonance frequency breathing at 6 breaths per minute (5.5s inhale, 5.5s exhale).\n'
           '• Cold water face splashes (diving reflex).\n'
           '• Quality sleep and somatic mindfulness practices.';
-      resource = ResourceItem.catalog.firstWhere((r) => r.id == 'nature_01'); // Ocean Shore Waves
+      resource = _safeFindResource('nature_01'); // Ocean Shore Waves
       chips = ['Show 5.5s Resonance Breathing', 'Explain Alpha brainwaves', 'Calm my Heart Rate'];
     }
     // 4. Focus, ADHD, and Racing Thoughts
@@ -146,7 +153,7 @@ class AiWellnessService {
           '🫁 **3. Box Breathing for Mental Clarity**:\n'
           '• Inhale 4s • Hold 4s • Exhale 4s • Hold 4s.\n'
           '• This stabilizes carbon dioxide levels in the blood and sharpens focal attention.';
-      resource = ResourceItem.catalog.firstWhere((r) => r.id == 'noise_03'); // Gentle Lofi Beats
+      resource = _safeFindResource('noise_03'); // Gentle Lofi Beats
       chips = ['Start Focus Audio', 'Explain Beta vs Alpha waves', 'How to stop overthinking'];
     }
     // 5. Sleep & Insomnia
@@ -159,7 +166,7 @@ class AiWellnessService {
           '🌡️ **3. Core Temperature Drop**:\n'
           '• Your body must drop by ~1°C to initiate melatonin release. Keep your bedroom cool (~18°C / 65°F).\n\n'
           'Would you like to start a soothing soundscape now?';
-      resource = ResourceItem.catalog.firstWhere((r) => r.id == 'rain_01'); // Rain on window with thunder
+      resource = _safeFindResource('rain_01'); // Rain on window with thunder
       chips = ['Start Sleep Ambience', 'Explain Body Scan Meditation', 'Calm down before bed'];
     }
     // 6. Depression, Sadness, or Low Energy
@@ -171,7 +178,7 @@ class AiWellnessService {
           '• Place one hand over your heart or on your chest. Feel the warmth and the gentle rhythm of your breathing.\n'
           '• Remind yourself: *"This is a painful moment, but suffering is part of being human. May I be gentle with myself."*\n\n'
           '💡 *Important: If you are in crisis, please reach out to trusted friends, family, or call/text 988 (or your local mental health crisis line). You do not have to carry this alone.*';
-      resource = ResourceItem.catalog.firstWhere((r) => r.id == 'piano_01'); // Peaceful Relaxing Piano
+      resource = _safeFindResource('piano_01'); // Peaceful Relaxing Piano
       chips = ['Play soothing piano music', 'Teach me gentle breathing', 'Connect with my therapist'];
     }
     // 7. Breathing Exercises (Box, 4-7-8, Diaphragmatic)
@@ -189,7 +196,7 @@ class AiWellnessService {
           '• Slowly whoosh exhale through mouth for 8s.\n\n'
           '🫀 **3. Coherent 5.5s Resonance**:\n'
           '• 5.5s Inhale + 5.5s Exhale = ~5.5 breaths per minute. Maximizes Heart Rate Variability (HRV).';
-      resource = ResourceItem.catalog.firstWhere((r) => r.id == 'med_01'); // 5-Min Morning Meditation
+      resource = _safeFindResource('med_01'); // 5-Min Morning Meditation
       chips = ['Try Box Breathing now', 'Explain HRV benefits', 'Start 5-min Guided Session'];
     }
     // 8. General Greeting & Introduction
@@ -222,16 +229,16 @@ class AiWellnessService {
 
   static ResourceItem? _findRelevantResource(String query) {
     if (query.contains('anxi') || query.contains('panic') || query.contains('stress')) {
-      return ResourceItem.catalog.firstWhere((r) => r.id == 'med_03');
+      return _safeFindResource('med_03');
     }
     if (query.contains('alpha') || query.contains('focus') || query.contains('brainwave')) {
-      return ResourceItem.catalog.firstWhere((r) => r.id == 'noise_01');
+      return _safeFindResource('noise_01');
     }
     if (query.contains('sleep') || query.contains('rain') || query.contains('night')) {
-      return ResourceItem.catalog.firstWhere((r) => r.id == 'rain_01');
+      return _safeFindResource('rain_01');
     }
     if (query.contains('piano') || query.contains('sad') || query.contains('calm')) {
-      return ResourceItem.catalog.firstWhere((r) => r.id == 'piano_01');
+      return _safeFindResource('piano_01');
     }
     return null;
   }
