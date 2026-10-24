@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neuroshift_mobile/core/providers/app_providers.dart';
 import 'package:neuroshift_mobile/core/theme/muse_colors.dart';
+import 'package:neuroshift_mobile/features/chat/screens/ai_wellness_chat_screen.dart';
 import 'package:neuroshift_mobile/features/connect/screens/headband_connect_screen.dart';
 import 'package:neuroshift_mobile/features/meditate/screens/meditate_home_screen.dart';
 import 'package:neuroshift_mobile/features/profile/screens/profile_screen.dart';
@@ -33,6 +34,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         MeditateHomeScreen(onOpenConnectTab: () => _onTabSelected(2)),
         const HeadbandConnectScreen(),
         const ResourcesScreen(),
+        const AiWellnessChatScreen(),
         const ProfileScreen(),
       ];
       destinations = const [
@@ -57,6 +59,11 @@ class _MainShellState extends ConsumerState<MainShell> {
           label: 'Resources',
         ),
         NavigationDestination(
+          icon: Icon(Icons.psychology_alt_outlined, color: MuseColors.textSecondary),
+          selectedIcon: Icon(Icons.psychology_alt, color: MuseColors.cyanGlow),
+          label: 'AI Guide',
+        ),
+        NavigationDestination(
           icon: Icon(Icons.person_outline, color: MuseColors.textSecondary),
           selectedIcon: Icon(Icons.person, color: MuseColors.cyanGlow),
           label: 'Profile',
@@ -67,6 +74,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         MeditateHomeScreen(onOpenConnectTab: () => _onTabSelected(1)),
         const HeadbandConnectScreen(),
         const ResourcesScreen(),
+        const AiWellnessChatScreen(),
         const ProfileScreen(),
       ];
       destinations = const [
@@ -84,6 +92,11 @@ class _MainShellState extends ConsumerState<MainShell> {
           icon: Icon(Icons.spa_outlined, color: MuseColors.textSecondary),
           selectedIcon: Icon(Icons.spa, color: MuseColors.cyanGlow),
           label: 'Resources',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.psychology_alt_outlined, color: MuseColors.textSecondary),
+          selectedIcon: Icon(Icons.psychology_alt, color: MuseColors.cyanGlow),
+          label: 'AI Guide',
         ),
         NavigationDestination(
           icon: Icon(Icons.person_outline, color: MuseColors.textSecondary),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/muse_colors.dart';
 import '../../../core/theme/muse_spacing.dart';
 import '../../../core/widgets/muse_card.dart';
+import '../../chat/screens/ai_wellness_chat_screen.dart';
 import '../models/resource_evaluation.dart';
 import '../models/resource_item.dart';
 import '../providers/resource_ranking_provider.dart';
@@ -80,6 +81,58 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
                         color: MuseColors.textSecondary,
                         fontSize: 13,
                         height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: MuseSpacing.md),
+
+                    // Nova AI Mental Health Guide Banner
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AiWellnessChatScreen()),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                              const Color(0xFF9D4EDD).withValues(alpha: 0.15),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
+                          border: Border.all(color: const Color(0x4D00E5FF), width: 1.0),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.psychology_alt, color: MuseColors.cyanGlow, size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text(
+                                    'Nova AI Mental Health Guide',
+                                    style: TextStyle(
+                                      color: MuseColors.textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Need help? Ask questions about anxiety, sleep, brainwaves & get guidance',
+                                    style: TextStyle(color: MuseColors.textSecondary, fontSize: 10),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios, color: MuseColors.cyanGlow, size: 12),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: MuseSpacing.md),

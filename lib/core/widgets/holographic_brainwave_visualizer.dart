@@ -4,6 +4,7 @@ import '../theme/muse_colors.dart';
 import '../theme/muse_spacing.dart';
 
 /// Futuristic Multi-Band Holographic Brainwave Oscilloscope & Spectral HUD
+/// Features prominent stacked channels, quantum synthesis waves, and spectral power modes.
 class HolographicBrainwaveVisualizer extends StatefulWidget {
   final double alpha;
   final double beta;
@@ -12,6 +13,7 @@ class HolographicBrainwaveVisualizer extends StatefulWidget {
   final double gamma;
   final bool isConnected;
   final int packetsReceived;
+  final double height;
 
   const HolographicBrainwaveVisualizer({
     super.key,
@@ -22,6 +24,7 @@ class HolographicBrainwaveVisualizer extends StatefulWidget {
     required this.gamma,
     this.isConnected = true,
     this.packetsReceived = 0,
+    this.height = 280,
   });
 
   @override
@@ -33,14 +36,14 @@ class _HolographicBrainwaveVisualizerState
     extends State<HolographicBrainwaveVisualizer>
     with SingleTickerProviderStateMixin {
   late final AnimationController _sweepController;
-  int _selectedView = 0; // 0: Oscilloscope HUD, 1: Spectral Frequency Bars
+  int _selectedView = 0; // 0: STACKED CHANNELS, 1: QUANTUM SYNTHESIS, 2: SPECTRAL POWER
 
   @override
   void initState() {
     super.initState();
     _sweepController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3200),
+      duration: const Duration(milliseconds: 3000),
     )..repeat();
   }
 
@@ -110,39 +113,39 @@ class _HolographicBrainwaveVisualizerState
         color: const Color(0xFF090D16),
         borderRadius: BorderRadius.circular(MuseSpacing.radiusLg),
         border: Border.all(
-          color: dominantColor.withValues(alpha: 0.35),
-          width: 1.2,
+          color: dominantColor.withValues(alpha: 0.4),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: dominantColor.withValues(alpha: 0.08),
-            blurRadius: 20,
-            spreadRadius: 2,
+            color: dominantColor.withValues(alpha: 0.12),
+            blurRadius: 24,
+            spreadRadius: 3,
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Bar with Futuristic Telemetry Badges
+          // Header Bar with Futuristic Telemetry Badges & View Selector
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: MuseSpacing.md,
-              vertical: MuseSpacing.sm,
+              vertical: MuseSpacing.sm + 2,
             ),
             child: Row(
               children: [
                 Container(
-                  width: 8,
-                  height: 8,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: dominantColor,
                     boxShadow: [
                       BoxShadow(
-                        color: dominantColor.withValues(alpha: 0.8),
-                        blurRadius: 8,
-                        spreadRadius: 2,
+                        color: dominantColor.withValues(alpha: 0.9),
+                        blurRadius: 10,
+                        spreadRadius: 3,
                       ),
                     ],
                   ),
@@ -152,13 +155,13 @@ class _HolographicBrainwaveVisualizerState
                   'EEG QUANTUM SPECTRUM',
                   style: TextStyle(
                     color: MuseColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
                   ),
                 ),
                 const Spacer(),
-                // View Selector Toggle
+                // View Selector Toggle (CHANNELS / SYNTHESIS / POWER)
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF131B2E),
@@ -171,14 +174,19 @@ class _HolographicBrainwaveVisualizerState
                   child: Row(
                     children: [
                       _buildToggleButton(
-                        label: 'WAVES',
+                        label: 'CHANNELS',
                         isSelected: _selectedView == 0,
                         onTap: () => setState(() => _selectedView = 0),
                       ),
                       _buildToggleButton(
-                        label: 'POWER',
+                        label: 'SYNTHESIS',
                         isSelected: _selectedView == 1,
                         onTap: () => setState(() => _selectedView = 1),
+                      ),
+                      _buildToggleButton(
+                        label: 'POWER',
+                        isSelected: _selectedView == 2,
+                        onTap: () => setState(() => _selectedView = 2),
                       ),
                     ],
                   ),
@@ -190,26 +198,26 @@ class _HolographicBrainwaveVisualizerState
           // Dominant Band Status Indicator Ribbon
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: MuseSpacing.md, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: MuseSpacing.md, vertical: 7),
             decoration: BoxDecoration(
-              color: dominantColor.withValues(alpha: 0.1),
+              color: dominantColor.withValues(alpha: 0.12),
               border: Border.symmetric(
                 horizontal: BorderSide(
-                  color: dominantColor.withValues(alpha: 0.2),
+                  color: dominantColor.withValues(alpha: 0.25),
                   width: 0.8,
                 ),
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.radar, color: dominantColor, size: 14),
+                Icon(Icons.radar, color: dominantColor, size: 15),
                 const SizedBox(width: 6),
                 Text(
                   'DOMINANT: ',
                   style: TextStyle(
                     color: dominantColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -218,36 +226,42 @@ class _HolographicBrainwaveVisualizerState
                     dominantText.toUpperCase(),
                     style: const TextStyle(
                       color: MuseColors.textPrimary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
                       letterSpacing: 0.8,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Text(
-                  widget.isConnected
-                      ? 'SYNCED'
-                      : 'STANDBY',
-                  style: TextStyle(
-                    color: widget.isConnected
-                        ? MuseColors.calmGlow
-                        : MuseColors.textSecondary,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.0,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: (widget.isConnected ? MuseColors.calmGlow : MuseColors.bodyAmber)
+                        .withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    widget.isConnected
+                        ? '60 FPS LIVE'
+                        : 'STANDBY',
+                    style: TextStyle(
+                      color: widget.isConnected
+                          ? MuseColors.calmGlow
+                          : MuseColors.bodyAmber,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
 
-          // Dynamic Body (Wave Oscilloscope or Spectral Frequency Bars)
+          // Dynamic Body (Stacked Channels / Quantum Synthesis / Spectral Bars)
           Padding(
             padding: const EdgeInsets.all(MuseSpacing.md),
-            child: _selectedView == 0
-                ? _buildWaveOscilloscope(dominantColor)
-                : _buildSpectralBars(),
+            child: _buildBodyView(dominantColor),
           ),
 
           // Microvolt Legend Footer
@@ -256,7 +270,7 @@ class _HolographicBrainwaveVisualizerState
               MuseSpacing.md,
               0,
               MuseSpacing.md,
-              MuseSpacing.sm,
+              MuseSpacing.sm + 2,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -274,6 +288,18 @@ class _HolographicBrainwaveVisualizerState
     );
   }
 
+  Widget _buildBodyView(Color dominantColor) {
+    switch (_selectedView) {
+      case 0:
+        return _buildStackedChannelsView();
+      case 1:
+        return _buildSynthesisOscilloscope(dominantColor);
+      case 2:
+      default:
+        return _buildSpectralBars();
+    }
+  }
+
   Widget _buildToggleButton({
     required String label,
     required bool isSelected,
@@ -282,9 +308,9 @@ class _HolographicBrainwaveVisualizerState
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF00E5FF).withValues(alpha: 0.2) : Colors.transparent,
+          color: isSelected ? const Color(0xFF00E5FF).withValues(alpha: 0.25) : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
@@ -292,17 +318,43 @@ class _HolographicBrainwaveVisualizerState
           style: TextStyle(
             color: isSelected ? const Color(0xFF00E5FF) : MuseColors.textSecondary,
             fontSize: 9,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.8,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildWaveOscilloscope(Color dominantColor) {
+  /// 1. STACKED CHANNELS VIEW: Distinct, prominently separated lanes for each frequency band
+  Widget _buildStackedChannelsView() {
     return SizedBox(
-      height: 150,
+      height: widget.height,
+      width: double.infinity,
+      child: AnimatedBuilder(
+        animation: _sweepController,
+        builder: (context, child) {
+          return CustomPaint(
+            painter: _StackedEegChannelsPainter(
+              progress: _sweepController.value,
+              gamma: widget.gamma,
+              beta: widget.beta,
+              alpha: widget.alpha,
+              theta: widget.theta,
+              delta: widget.delta,
+              isConnected: widget.isConnected,
+            ),
+            size: Size.infinite,
+          );
+        },
+      ),
+    );
+  }
+
+  /// 2. QUANTUM SYNTHESIS VIEW: Massive, expansive overlapping oscilloscope wave
+  Widget _buildSynthesisOscilloscope(Color dominantColor) {
+    return SizedBox(
+      height: widget.height,
       width: double.infinity,
       child: AnimatedBuilder(
         animation: _sweepController,
@@ -324,6 +376,7 @@ class _HolographicBrainwaveVisualizerState
     );
   }
 
+  /// 3. SPECTRAL POWER VIEW: Neon gradient power bars with microvolt readouts
   Widget _buildSpectralBars() {
     final total = (widget.gamma + widget.beta + widget.alpha + widget.theta + widget.delta);
     final safeTotal = total > 0 ? total : 1.0;
@@ -331,39 +384,39 @@ class _HolographicBrainwaveVisualizerState
     return Column(
       children: [
         _buildSpectralBandRow(
-          band: 'GAMMA (30–100 Hz)',
+          band: 'γ GAMMA (30–100 Hz)',
           role: 'Peak Cognition & Neural Binding',
           power: widget.gamma,
           percent: (widget.gamma / safeTotal) * 100,
           color: const Color(0xFFEC4899),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _buildSpectralBandRow(
-          band: 'BETA (13–30 Hz)',
+          band: 'β BETA (13–30 Hz)',
           role: 'Active Focus & Analytical Thought',
           power: widget.beta,
           percent: (widget.beta / safeTotal) * 100,
           color: const Color(0xFF9D4EDD),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _buildSpectralBandRow(
-          band: 'ALPHA (8–13 Hz)',
+          band: 'α ALPHA (8–13 Hz)',
           role: 'Calm Mindfulness & Relaxation',
           power: widget.alpha,
           percent: (widget.alpha / safeTotal) * 100,
           color: const Color(0xFF00E5FF),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _buildSpectralBandRow(
-          band: 'THETA (4–8 Hz)',
+          band: 'θ THETA (4–8 Hz)',
           role: 'Deep Meditation & Creative Flow',
           power: widget.theta,
           percent: (widget.theta / safeTotal) * 100,
           color: const Color(0xFFFFB703),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _buildSpectralBandRow(
-          band: 'DELTA (0.5–4 Hz)',
+          band: 'δ DELTA (0.5–4 Hz)',
           role: 'Restorative Stillness & Deep Healing',
           power: widget.delta,
           percent: (widget.delta / safeTotal) * 100,
@@ -389,8 +442,8 @@ class _HolographicBrainwaveVisualizerState
               band,
               style: TextStyle(
                 color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
                 letterSpacing: 0.8,
               ),
             ),
@@ -399,45 +452,45 @@ class _HolographicBrainwaveVisualizerState
               '${power.toStringAsFixed(1)} μV (${percent.toStringAsFixed(0)}%)',
               style: const TextStyle(
                 color: MuseColors.textPrimary,
-                fontSize: 10,
+                fontSize: 11,
                 fontFamily: 'monospace',
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Text(
           role,
           style: const TextStyle(
             color: MuseColors.textSecondary,
-            fontSize: 9,
+            fontSize: 10,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 5),
         Stack(
           children: [
             Container(
-              height: 6,
+              height: 8,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: const Color(0xFF131B2E),
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
             FractionallySizedBox(
               widthFactor: (percent / 100).clamp(0.04, 1.0),
               child: Container(
-                height: 6,
+                height: 8,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [color.withValues(alpha: 0.6), color],
                   ),
-                  borderRadius: BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(4),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withValues(alpha: 0.6),
-                      blurRadius: 6,
+                      color: color.withValues(alpha: 0.8),
+                      blurRadius: 8,
                     ),
                   ],
                 ),
@@ -456,11 +509,17 @@ class _HolographicBrainwaveVisualizerState
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 6,
-              height: 6,
+              width: 8,
+              height: 8,
               decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.8),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 4),
@@ -468,8 +527,8 @@ class _HolographicBrainwaveVisualizerState
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -478,8 +537,9 @@ class _HolographicBrainwaveVisualizerState
         Text(
           '${val > 0 ? val.toStringAsFixed(1) : '--'} μV',
           style: const TextStyle(
-            color: MuseColors.textSecondary,
-            fontSize: 8,
+            color: MuseColors.textPrimary,
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
             fontFamily: 'monospace',
           ),
         ),
@@ -488,7 +548,267 @@ class _HolographicBrainwaveVisualizerState
   }
 }
 
-/// Custom Painter that renders an authenticated, cybernetic multi-channel EEG oscilloscope
+/// 1. Painter that renders 5 distinctly separated EEG channel lanes with custom badges and live waves
+class _StackedEegChannelsPainter extends CustomPainter {
+  final double progress;
+  final double gamma;
+  final double beta;
+  final double alpha;
+  final double theta;
+  final double delta;
+  final bool isConnected;
+
+  _StackedEegChannelsPainter({
+    required this.progress,
+    required this.gamma,
+    required this.beta,
+    required this.alpha,
+    required this.theta,
+    required this.delta,
+    required this.isConnected,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final channelCount = 5;
+    final channelHeight = size.height / channelCount;
+
+    // Background medical grid
+    _drawMedicalGrid(canvas, size, channelCount);
+
+    final channels = [
+      _ChannelData(
+        label: 'γ GAMMA',
+        freqRange: '30–100 Hz',
+        power: gamma,
+        color: const Color(0xFFEC4899),
+        freq: 12.0,
+        baseAmp: 12.0,
+        scale: (gamma.clamp(1.0, 30.0) / 30.0),
+        phase: progress * 2 * math.pi * 2.2,
+      ),
+      _ChannelData(
+        label: 'β BETA',
+        freqRange: '13–30 Hz',
+        power: beta,
+        color: const Color(0xFF9D4EDD),
+        freq: 8.0,
+        baseAmp: 16.0,
+        scale: (beta.clamp(2.0, 40.0) / 40.0),
+        phase: progress * 2 * math.pi * 1.6,
+      ),
+      _ChannelData(
+        label: 'α ALPHA',
+        freqRange: '8–13 Hz',
+        power: alpha,
+        color: const Color(0xFF00E5FF),
+        freq: 5.0,
+        baseAmp: 22.0,
+        scale: (alpha.clamp(3.0, 45.0) / 45.0),
+        phase: progress * 2 * math.pi * 1.1,
+      ),
+      _ChannelData(
+        label: 'θ THETA',
+        freqRange: '4–8 Hz',
+        power: theta,
+        color: const Color(0xFFFFB703),
+        freq: 2.8,
+        baseAmp: 18.0,
+        scale: (theta.clamp(2.0, 40.0) / 40.0),
+        phase: progress * 2 * math.pi * 0.7,
+      ),
+      _ChannelData(
+        label: 'δ DELTA',
+        freqRange: '0.5–4 Hz',
+        power: delta,
+        color: const Color(0xFF3B82F6),
+        freq: 1.4,
+        baseAmp: 20.0,
+        scale: (delta.clamp(2.0, 45.0) / 45.0),
+        phase: progress * 2 * math.pi * 0.4,
+      ),
+    ];
+
+    for (int i = 0; i < channelCount; i++) {
+      final ch = channels[i];
+      final laneMidY = (i * channelHeight) + (channelHeight / 2);
+
+      // Draw Channel Label & Microvolt Text on Left
+      _drawChannelText(
+        canvas: canvas,
+        ch: ch,
+        y: laneMidY - 14,
+      );
+
+      // Draw Lane Waveform
+      final laneAmp = (isConnected ? ch.baseAmp * (ch.scale > 0 ? ch.scale : 0.6) : ch.baseAmp * 0.5)
+          .clamp(4.0, channelHeight * 0.42);
+
+      _drawSingleLaneWave(
+        canvas: canvas,
+        startX: 85.0,
+        width: size.width - 85.0,
+        midY: laneMidY,
+        ch: ch,
+        amplitude: laneAmp,
+      );
+    }
+
+    // Vertical sweep tracer line
+    final sweepX = 85.0 + (progress * (size.width - 85.0));
+    final sweepPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.transparent,
+          const Color(0xFF00E5FF).withValues(alpha: 0.8),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(sweepX - 2, 0, 4, size.height))
+      ..strokeWidth = 2.0;
+    canvas.drawLine(Offset(sweepX, 0), Offset(sweepX, size.height), sweepPaint);
+  }
+
+  void _drawChannelText({
+    required Canvas canvas,
+    required _ChannelData ch,
+    required double y,
+  }) {
+    final tp = TextPainter(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: '${ch.label}\n',
+            style: TextStyle(
+              color: ch.color,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+            ),
+          ),
+          TextSpan(
+            text: '${ch.power > 0 ? ch.power.toStringAsFixed(1) : '--'} μV',
+            style: const TextStyle(
+              color: MuseColors.textPrimary,
+              fontSize: 9,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    tp.paint(canvas, Offset(4, y));
+  }
+
+  void _drawSingleLaneWave({
+    required Canvas canvas,
+    required double startX,
+    required double width,
+    required double midY,
+    required _ChannelData ch,
+    required double amplitude,
+  }) {
+    final path = Path();
+    final glowPath = Path();
+
+    for (double x = 0; x <= width; x += 1.5) {
+      final normX = x / width;
+      final window = math.sin(normX * math.pi);
+      final harmonic = math.sin(normX * ch.freq * 2 * math.pi + ch.phase) +
+          0.2 * math.sin(normX * ch.freq * 4 * math.pi + ch.phase * 1.5);
+      final y = midY + harmonic * amplitude * window;
+
+      if (x == 0) {
+        path.moveTo(startX + x, y);
+        glowPath.moveTo(startX + x, y);
+      } else {
+        path.lineTo(startX + x, y);
+        glowPath.lineTo(startX + x, y);
+      }
+    }
+
+    // Outer glow bloom
+    final glowPaint = Paint()
+      ..color = ch.color.withValues(alpha: 0.3)
+      ..strokeWidth = 5.0
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawPath(glowPath, glowPaint);
+
+    // Sharp neon beam
+    final linePaint = Paint()
+      ..color = ch.color
+      ..strokeWidth = 2.2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(path, linePaint);
+  }
+
+  void _drawMedicalGrid(Canvas canvas, Size size, int channelCount) {
+    final gridPaint = Paint()
+      ..color = const Color(0xFF16233B).withValues(alpha: 0.45)
+      ..strokeWidth = 0.6;
+
+    final laneHeight = size.height / channelCount;
+
+    // Horizontal lane dividers
+    for (int i = 0; i <= channelCount; i++) {
+      final y = i * laneHeight;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    // Left channel label partition line
+    final partitionPaint = Paint()
+      ..color = const Color(0xFF263D66)
+      ..strokeWidth = 1.0;
+    canvas.drawLine(Offset(80, 0), Offset(80, size.height), partitionPaint);
+
+    // Vertical time grid ticks
+    final stepsX = 8;
+    for (int i = 1; i < stepsX; i++) {
+      final x = 80 + (size.width - 80) * (i / stepsX);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StackedEegChannelsPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.gamma != gamma ||
+        oldDelegate.beta != beta ||
+        oldDelegate.alpha != alpha ||
+        oldDelegate.theta != theta ||
+        oldDelegate.delta != delta;
+  }
+}
+
+class _ChannelData {
+  final String label;
+  final String freqRange;
+  final double power;
+  final Color color;
+  final double freq;
+  final double baseAmp;
+  final double scale;
+  final double phase;
+
+  _ChannelData({
+    required this.label,
+    required this.freqRange,
+    required this.power,
+    required this.color,
+    required this.freq,
+    required this.baseAmp,
+    required this.scale,
+    required this.phase,
+  });
+}
+
+/// 2. Custom Painter that renders an expansive quantum multi-channel EEG composite oscilloscope
 class _CyberneticEegPainter extends CustomPainter {
   final double progress;
   final double alpha;
@@ -512,13 +832,13 @@ class _CyberneticEegPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     _drawCyberGrid(canvas, size);
 
-    // Baseline amplitude scaling
+    // Baseline amplitude scaling (scaled for expansive prominence up to 45px amplitude)
     final hasRealSignal = isConnected && (alpha + beta + theta + delta + gamma > 0.5);
-    final aScale = hasRealSignal ? (alpha.clamp(4.0, 50.0) / 50.0) : 0.65;
-    final bScale = hasRealSignal ? (beta.clamp(3.0, 45.0) / 45.0) : 0.45;
-    final tScale = hasRealSignal ? (theta.clamp(3.0, 45.0) / 45.0) : 0.55;
-    final dScale = hasRealSignal ? (delta.clamp(2.0, 40.0) / 40.0) : 0.70;
-    final gScale = hasRealSignal ? (gamma.clamp(1.0, 30.0) / 30.0) : 0.35;
+    final aScale = hasRealSignal ? (alpha.clamp(4.0, 50.0) / 50.0) : 0.75;
+    final bScale = hasRealSignal ? (beta.clamp(3.0, 45.0) / 45.0) : 0.55;
+    final tScale = hasRealSignal ? (theta.clamp(3.0, 45.0) / 45.0) : 0.65;
+    final dScale = hasRealSignal ? (delta.clamp(2.0, 40.0) / 40.0) : 0.80;
+    final gScale = hasRealSignal ? (gamma.clamp(1.0, 30.0) / 30.0) : 0.45;
 
     // 1. Delta (Deep Blue, slow 1.5 Hz swell)
     _drawOscilloscopeChannel(
@@ -526,10 +846,10 @@ class _CyberneticEegPainter extends CustomPainter {
       size: size,
       color: const Color(0xFF3B82F6),
       frequency: 1.4,
-      amplitude: 14.0 * dScale,
+      amplitude: 28.0 * dScale,
       phaseOffset: progress * 2 * math.pi * 0.4,
-      strokeWidth: 1.6,
-      opacity: 0.75,
+      strokeWidth: 2.2,
+      opacity: 0.8,
     );
 
     // 2. Theta (Amber Gold, gentle 3.2 Hz wave)
@@ -538,47 +858,47 @@ class _CyberneticEegPainter extends CustomPainter {
       size: size,
       color: const Color(0xFFFFB703),
       frequency: 2.8,
-      amplitude: 16.0 * tScale,
+      amplitude: 32.0 * tScale,
       phaseOffset: progress * 2 * math.pi * 0.7,
-      strokeWidth: 1.8,
+      strokeWidth: 2.5,
       opacity: 0.85,
     );
 
-    // 3. Alpha (Electric Cyan, primary bioluminescent mindfulness ribbon 5.5 Hz)
+    // 3. Alpha (Electric Cyan, primary bioluminescent mindfulness ribbon)
     _drawOscilloscopeChannel(
       canvas: canvas,
       size: size,
       color: const Color(0xFF00E5FF),
       frequency: 5.2,
-      amplitude: 22.0 * aScale,
+      amplitude: 44.0 * aScale,
       phaseOffset: progress * 2 * math.pi * 1.1,
-      strokeWidth: 2.4,
+      strokeWidth: 3.2,
       opacity: 1.0,
       withGlow: true,
     );
 
-    // 4. Beta (Violet Purple, crisp fast active spikes 8.8 Hz)
+    // 4. Beta (Violet Purple, crisp fast active spikes)
     _drawOscilloscopeChannel(
       canvas: canvas,
       size: size,
       color: const Color(0xFF9D4EDD),
       frequency: 8.6,
-      amplitude: 12.0 * bScale,
+      amplitude: 24.0 * bScale,
       phaseOffset: progress * 2 * math.pi * 1.6,
-      strokeWidth: 1.7,
-      opacity: 0.8,
+      strokeWidth: 2.4,
+      opacity: 0.85,
     );
 
-    // 5. Gamma (Electric Rose, fast cognitive burst 14 Hz)
+    // 5. Gamma (Electric Rose, fast cognitive bursts)
     _drawOscilloscopeChannel(
       canvas: canvas,
       size: size,
       color: const Color(0xFFEC4899),
       frequency: 13.5,
-      amplitude: 9.0 * gScale,
+      amplitude: 18.0 * gScale,
       phaseOffset: progress * 2 * math.pi * 2.2,
-      strokeWidth: 1.4,
-      opacity: 0.75,
+      strokeWidth: 1.8,
+      opacity: 0.8,
     );
 
     // 6. Draw futuristic vertical sweep tracer line
@@ -589,11 +909,11 @@ class _CyberneticEegPainter extends CustomPainter {
         end: Alignment.bottomCenter,
         colors: [
           Colors.transparent,
-          const Color(0xFF00E5FF).withValues(alpha: 0.7),
+          const Color(0xFF00E5FF).withValues(alpha: 0.8),
           Colors.transparent,
         ],
       ).createShader(Rect.fromLTWH(scanX - 2, 0, 4, size.height))
-      ..strokeWidth = 2.0;
+      ..strokeWidth = 2.4;
 
     canvas.drawLine(Offset(scanX, 0), Offset(scanX, size.height), sweepPaint);
   }
@@ -604,14 +924,14 @@ class _CyberneticEegPainter extends CustomPainter {
       ..strokeWidth = 0.6;
 
     // Horizontal baseline grid
-    final stepsY = 4;
+    final stepsY = 6;
     for (int i = 1; i < stepsY; i++) {
       final y = size.height * (i / stepsY);
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
     // Vertical grid ticks
-    final stepsX = 8;
+    final stepsX = 10;
     for (int i = 1; i < stepsX; i++) {
       final x = size.width * (i / stepsX);
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
@@ -620,7 +940,7 @@ class _CyberneticEegPainter extends CustomPainter {
     // Center voltage zero-axis
     final zeroPaint = Paint()
       ..color = const Color(0xFF263D66)
-      ..strokeWidth = 1.0;
+      ..strokeWidth = 1.2;
     canvas.drawLine(
       Offset(0, size.height / 2),
       Offset(size.width, size.height / 2),
@@ -650,7 +970,6 @@ class _CyberneticEegPainter extends CustomPainter {
 
     for (double x = 0; x <= size.width; x += 1.5) {
       final normX = x / size.width;
-      // Edge damping window so waves seamlessly stay inside oscilloscope box
       final window = math.sin(normX * math.pi);
       final harmonic = math.sin(normX * frequency * 2 * math.pi + phaseOffset) +
           0.25 * math.sin(normX * frequency * 4 * math.pi + phaseOffset * 1.5);
@@ -665,10 +984,10 @@ class _CyberneticEegPainter extends CustomPainter {
 
     if (withGlow) {
       final glowPaint = Paint()
-        ..color = color.withValues(alpha: 0.3)
+        ..color = color.withValues(alpha: 0.35)
         ..strokeWidth = strokeWidth * 3.5
         ..style = PaintingStyle.stroke
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
       canvas.drawPath(path, glowPaint);
     }
 
