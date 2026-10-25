@@ -7,6 +7,7 @@ import 'core/theme/muse_colors.dart';
 import 'core/theme/muse_theme.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/navigation/screens/main_shell.dart';
+import 'features/onboarding/screens/onboarding_consent_screen.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -36,10 +37,26 @@ class NeuroShiftApp extends ConsumerWidget {
       theme: MuseTheme.darkTheme,
       home: authState.when(
         data: (user) {
-          if (user != null) {
-            return const MainShell();
+          if (user == null) {
+            return const AuthScreen();
           }
-          return const AuthScreen();
+
+          final consentState = ref.watch(userConsentRecordProvider);
+          return consentState.when(
+            data: (consentRecord) {
+              if (consentRecord == null || !consentRecord.isActive) {
+                return OnboardingConsentScreen(existingRecord: consentRecord);
+              }
+              return const MainShell();
+            },
+            loading: () => const Scaffold(
+              backgroundColor: MuseColors.spaceBackground,
+              body: Center(
+                child: CircularProgressIndicator(color: MuseColors.cyanGlow),
+              ),
+            ),
+            error: (_, _) => const OnboardingConsentScreen(),
+          );
         },
         loading: () => const Scaffold(
           backgroundColor: MuseColors.spaceBackground,

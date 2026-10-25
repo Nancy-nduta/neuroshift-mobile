@@ -121,6 +121,7 @@ class AuthService {
         displayName: displayName?.trim(),
         createdAt: DateTime.tryParse(existingCreatedAt) ?? now,
         rawCreatedAt: existingCreatedAt,
+        hasCompletedOnboarding: false,
       );
       await userDocRef.set(newProfile.toFirestoreMap(), SetOptions(merge: true));
       return newProfile;
@@ -131,6 +132,7 @@ class AuthService {
         displayName: displayName?.trim(),
         createdAt: now,
         rawCreatedAt: nowIso,
+        hasCompletedOnboarding: false,
       );
       await userDocRef.set(newProfile.toFirestoreMap());
       return newProfile;
