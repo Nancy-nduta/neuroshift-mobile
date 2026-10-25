@@ -17,37 +17,36 @@ class MuseCard extends StatelessWidget {
     this.onTap,
     this.borderColor,
     this.backgroundColor,
-    this.borderRadius = MuseSpacing.radiusLg,
+    this.borderRadius = 18.0,
   });
 
   @override
   Widget build(BuildContext context) {
-    final border = Border.all(
-      color: borderColor ?? MuseColors.cardBorder,
-      width: 1.0,
-    );
+    final effectiveBorderColor = borderColor != null
+        ? borderColor!.withValues(alpha: 0.45)
+        : MuseColors.cardBorder.withValues(alpha: 0.65);
 
     final cardContent = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: backgroundColor ?? const Color(0xFF0F1523),
+        color: backgroundColor ?? const Color(0xFF121826),
         borderRadius: BorderRadius.circular(borderRadius),
-        border: border,
+        border: Border.all(
+          color: effectiveBorderColor,
+          width: 1.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 14,
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
-          if (borderColor != null)
-            BoxShadow(
-              color: borderColor!.withValues(alpha: 0.12),
-              blurRadius: 18,
-              spreadRadius: 1,
-            ),
         ],
       ),
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: child,
+      ),
     );
 
     if (onTap != null) {

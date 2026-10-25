@@ -38,12 +38,12 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Dynamically ranked list of resources based on recorded EEG calm & ratings
     final rankedCatalog = ref.watch(rankedResourcesProvider);
     final rankings = ref.watch(resourceRankingsProvider);
 
     final filtered = rankedCatalog.where((item) {
-      final matchesCategory = _selectedCategory == null || item.category == _selectedCategory;
+      final matchesCategory =
+          _selectedCategory == null || item.category == _selectedCategory;
       final matchesSearch = _searchQuery.isEmpty ||
           item.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           item.author.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -54,16 +54,51 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
     return Scaffold(
       backgroundColor: MuseColors.spaceBackground,
       appBar: AppBar(
-        title: const Text('RESOURCES'),
+        title: const Text(
+          'Library',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: MuseColors.textPrimary,
+          ),
+        ),
         centerTitle: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: MuseSpacing.md),
+            child: ActionChip(
+              avatar: const Icon(Icons.psychology_alt,
+                  size: 16, color: MuseColors.cyanGlow),
+              label: const Text(
+                'Ask Nova',
+                style: TextStyle(
+                  color: MuseColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              backgroundColor: MuseColors.cardSurface,
+              side: BorderSide(
+                  color: MuseColors.cyanGlow.withValues(alpha: 0.35)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AiWellnessChatScreen()),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: CustomScrollView(
           controller: _scrollController,
           slivers: [
-            // Intuitive Subtitle & Instructions
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -75,90 +110,35 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Explore guided meditations, rain sounds, white noise, and acoustic piano. Tap any session to start listening, connect your Muse 2 headband to observe your brainwaves in real time, and complete the practice to train your personal recommendation engine.',
-                      style: TextStyle(
-                        color: MuseColors.textSecondary,
-                        fontSize: 13,
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: MuseSpacing.md),
-
-                    // Nova AI Mental Health Guide Banner
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AiWellnessChatScreen()),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                              const Color(0xFF9D4EDD).withValues(alpha: 0.15),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
-                          border: Border.all(color: const Color(0x4D00E5FF), width: 1.0),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.psychology_alt, color: MuseColors.cyanGlow, size: 22),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'Nova AI Mental Health Guide',
-                                    style: TextStyle(
-                                      color: MuseColors.textPrimary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Need help? Ask questions about anxiety, sleep, brainwaves & get guidance',
-                                    style: TextStyle(color: MuseColors.textSecondary, fontSize: 10),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios, color: MuseColors.cyanGlow, size: 12),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: MuseSpacing.md),
-
-                    // Search Field
+                    // Clean Search Field
                     Container(
                       decoration: BoxDecoration(
                         color: MuseColors.cardSurface,
-                        borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
-                        border: Border.all(color: MuseColors.cardBorder),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: MuseColors.cardBorder.withValues(alpha: 0.7)),
                       ),
                       child: TextField(
                         onChanged: (val) => setState(() => _searchQuery = val),
-                        style: const TextStyle(color: MuseColors.textPrimary, fontSize: 14),
+                        style: const TextStyle(
+                            color: MuseColors.textPrimary, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'Search 20 resources (e.g. rain, piano, focus)...',
-                          hintStyle: const TextStyle(color: MuseColors.textMuted, fontSize: 13),
-                          prefixIcon: const Icon(Icons.search, color: MuseColors.textSecondary, size: 20),
+                          hintText: 'Search meditations, rain, sleep, focus...',
+                          hintStyle: const TextStyle(
+                              color: MuseColors.textMuted, fontSize: 13),
+                          prefixIcon: const Icon(Icons.search,
+                              color: MuseColors.textSecondary, size: 20),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear, color: MuseColors.textMuted, size: 18),
-                                  onPressed: () => setState(() => _searchQuery = ''),
+                                  icon: const Icon(Icons.clear,
+                                      color: MuseColors.textMuted, size: 18),
+                                  onPressed: () =>
+                                      setState(() => _searchQuery = ''),
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                         ),
                       ),
                     ),
@@ -170,22 +150,23 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
                       child: Row(
                         children: [
                           _buildFilterChip(
-                            label: 'All (${rankedCatalog.length})',
+                            label: 'All',
                             isSelected: _selectedCategory == null,
                             icon: Icons.apps,
                             color: MuseColors.cyanGlow,
-                            onTap: () => setState(() => _selectedCategory = null),
+                            onTap: () =>
+                                setState(() => _selectedCategory = null),
                           ),
                           ...ResourceCategory.values.map((cat) {
-                            final count = rankedCatalog.where((item) => item.category == cat).length;
                             return Padding(
                               padding: const EdgeInsets.only(left: 8),
                               child: _buildFilterChip(
-                                label: '${cat.label} ($count)',
+                                label: cat.label,
                                 isSelected: _selectedCategory == cat,
                                 icon: cat.icon,
                                 color: cat.color,
-                                onTap: () => setState(() => _selectedCategory = cat),
+                                onTap: () =>
+                                    setState(() => _selectedCategory = cat),
                               ),
                             );
                           }),
@@ -197,7 +178,6 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
               ),
             ),
 
-            // Resources List
             if (filtered.isEmpty)
               const SliverFillRemaining(
                 hasScrollBody: false,
@@ -205,20 +185,22 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.search_off, size: 48, color: MuseColors.textMuted),
-                      SizedBox(height: MuseSpacing.md),
+                      Icon(Icons.search_off,
+                          size: 44, color: MuseColors.textMuted),
+                      SizedBox(height: MuseSpacing.sm),
                       Text(
-                        'No matching resources found',
+                        'No matching sessions',
                         style: TextStyle(
                           color: MuseColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Try searching for "meditation", "rain", "piano", or clear your filter.',
-                        style: TextStyle(color: MuseColors.textSecondary, fontSize: 13),
+                        'Try another keyword or category filter.',
+                        style: TextStyle(
+                            color: MuseColors.textSecondary, fontSize: 12.5),
                       ),
                     ],
                   ),
@@ -226,7 +208,12 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.all(MuseSpacing.lg),
+                padding: const EdgeInsets.fromLTRB(
+                  MuseSpacing.lg,
+                  MuseSpacing.sm,
+                  MuseSpacing.lg,
+                  MuseSpacing.xl,
+                ),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -234,7 +221,7 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
                       final eval = rankings[item.id];
 
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: MuseSpacing.md),
+                        padding: const EdgeInsets.only(bottom: 12),
                         child: _ResourceCard(
                           item: item,
                           evaluation: eval,
@@ -262,27 +249,32 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.20) : MuseColors.cardSurface,
+          color: isSelected
+              ? color.withValues(alpha: 0.18)
+              : MuseColors.cardSurface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : MuseColors.cardBorder,
-            width: isSelected ? 1.4 : 1.0,
+            width: 1.0,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: isSelected ? color : MuseColors.textSecondary),
+            Icon(icon,
+                size: 14, color: isSelected ? color : MuseColors.textSecondary),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? MuseColors.textPrimary : MuseColors.textSecondary,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? MuseColors.textPrimary
+                    : MuseColors.textSecondary,
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ],
@@ -305,204 +297,123 @@ class _ResourceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasHighRating = evaluation != null && evaluation!.performanceScore >= 70.0;
+    final hasHighRating =
+        evaluation != null && evaluation!.performanceScore >= 70.0;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return MuseCard(
       onTap: onTap,
-      child: MuseCard(
-        borderColor: hasHighRating
-            ? MuseColors.mindCyan.withValues(alpha: 0.6)
-            : MuseColors.cardBorder,
-        backgroundColor: hasHighRating
-            ? MuseColors.mindCyan.withValues(alpha: 0.05)
-            : MuseColors.cardSurface,
-        onTap: onTap,
-        padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(12),
+      borderColor: hasHighRating
+          ? MuseColors.mindCyan.withValues(alpha: 0.5)
+          : MuseColors.cardBorder,
+      child: Row(
         children: [
-          // Thumbnail with duration tag & play overlay
+          // Compact Square Thumbnail with Play Overlay
           Stack(
+            alignment: Alignment.center,
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(MuseSpacing.radiusMd)),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 78,
+                  height: 78,
                   child: Image.network(
                     item.thumbnailUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (ctx, error, stackTrace) {
                       return Container(
                         color: MuseColors.surfaceElevated,
-                        child: Center(
-                          child: Icon(item.category.icon, size: 48, color: item.category.color),
+                        child: Icon(
+                          item.category.icon,
+                          size: 28,
+                          color: item.category.color,
                         ),
                       );
                     },
                   ),
                 ),
               ),
-
-              // Gradient Overlay
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.75),
-                      ],
-                    ),
-                  ),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-
-              // Center Play Icon Button
-              Positioned.fill(
-                child: Center(
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Duration Badge
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.access_time, size: 10, color: Colors.white70),
-                      const SizedBox(width: 4),
-                      Text(
-                        item.durationLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Category Badge
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: item.category.color.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(item.category.icon, size: 11, color: MuseColors.spaceBackground),
-                      const SizedBox(width: 4),
-                      Text(
-                        item.category.label,
-                        style: const TextStyle(
-                          color: MuseColors.spaceBackground,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Top Rated / Performance Badge if evaluated
-              if (evaluation != null)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: hasHighRating
-                          ? MuseColors.mindCyan
-                          : MuseColors.surfaceElevated,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        if (hasHighRating)
-                          BoxShadow(
-                            color: MuseColors.mindCyan.withValues(alpha: 0.4),
-                            blurRadius: 6,
-                          ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          hasHighRating ? Icons.star : Icons.history,
-                          size: 11,
-                          color: hasHighRating ? MuseColors.spaceBackground : MuseColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          hasHighRating
-                              ? 'TOP RATED • ${evaluation!.performanceScore.toInt()}%'
-                              : 'SCORE: ${evaluation!.performanceScore.toInt()}%',
-                          style: TextStyle(
-                            color: hasHighRating ? MuseColors.spaceBackground : MuseColors.textPrimary,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
             ],
           ),
+          const SizedBox(width: 14),
 
-          // Metadata Info
-          Padding(
-            padding: const EdgeInsets.all(MuseSpacing.md),
+          // Title, Description & Category/Duration Row
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: item.category.color.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        item.category.label,
+                        style: TextStyle(
+                          color: item.category.color,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      item.durationLabel,
+                      style: const TextStyle(
+                        color: MuseColors.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    if (evaluation != null) ...[
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: MuseColors.breathMint.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${evaluation!.calmPercent.toInt()}% calm',
+                          style: const TextStyle(
+                            color: MuseColors.breathMint,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Text(
                   item.title,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: MuseColors.textPrimary,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   item.description,
                   maxLines: 2,
@@ -510,79 +421,13 @@ class _ResourceCard extends StatelessWidget {
                   style: const TextStyle(
                     color: MuseColors.textSecondary,
                     fontSize: 12,
-                    height: 1.35,
+                    height: 1.3,
                   ),
-                ),
-                const SizedBox(height: MuseSpacing.sm),
-
-                // If evaluated, show mood detection report snippet
-                if (evaluation != null) ...[
-                  Container(
-                    margin: const EdgeInsets.only(bottom: MuseSpacing.xs),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: MuseColors.surfaceElevated,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: MuseColors.cardBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.psychology, size: 12, color: MuseColors.mindCyan),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Mood Detected: ${evaluation!.inferredMood} • ${evaluation!.calmPercent.toInt()}% Calm',
-                            style: const TextStyle(
-                              color: MuseColors.mindCyan,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '★' * evaluation!.starRating,
-                          style: const TextStyle(
-                            color: MuseColors.bodyAmber,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                ],
-
-                Row(
-                  children: [
-                    const Icon(Icons.person_outline, size: 14, color: MuseColors.textMuted),
-                    const SizedBox(width: 4),
-                    Text(
-                      item.author,
-                      style: const TextStyle(
-                        color: MuseColors.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      'START SESSION',
-                      style: TextStyle(
-                        color: MuseColors.mindCyan,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.chevron_right, size: 14, color: MuseColors.mindCyan),
-                  ],
                 ),
               ],
             ),
           ),
         ],
-      ),
       ),
     );
   }

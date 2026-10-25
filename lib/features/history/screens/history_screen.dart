@@ -16,7 +16,10 @@ class HistoryScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: MuseColors.spaceBackground,
       appBar: AppBar(
-        title: const Text('HISTORY & INSIGHTS'),
+        title: const Text(
+          'Activity',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 0),
+        ),
         centerTitle: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
