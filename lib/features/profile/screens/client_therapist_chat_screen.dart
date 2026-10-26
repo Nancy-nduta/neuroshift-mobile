@@ -6,6 +6,7 @@ import '../../../core/theme/muse_colors.dart';
 import '../../../core/theme/muse_spacing.dart';
 import '../../../models/therapist_access_grant.dart';
 import '../../../models/therapist_message.dart';
+import '../../../services/notifications/notification_service.dart';
 import '../../resources/models/resource_item.dart';
 import '../../resources/screens/resource_practice_screen.dart';
 
@@ -25,6 +26,20 @@ class _ClientTherapistChatScreenState extends ConsumerState<ClientTherapistChatS
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
   bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final user = ref.read(authStateProvider).value;
+      if (user == null) return;
+      final notifications = ref.read(userNotificationsProvider);
+      ref
+          .read(notificationReadProvider.notifier)
+          .markGrantNotificationsRead(user.uid, widget.grant.id, notifications);
+    });
+  }
 
   @override
   void dispose() {
@@ -90,6 +105,196 @@ class _ClientTherapistChatScreenState extends ConsumerState<ClientTherapistChatS
         ),
       ),
     );
+  }
+
+  Future<void> _showEditMessageDialog(TherapistMessage message) async {
+    final editController = TextEditingController(text: message.text);
+    final updatedText = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: MuseColors.cardSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Edit Message',
+          style: TextStyle(color: MuseColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: editController,
+          autofocus: true,
+          maxLines: 4,
+          minLines: 1,
+          style: const TextStyle(color: MuseColors.textPrimary, fontSize: 13.5),
+          decoration: InputDecoration(
+            hintText: 'Update your message...',
+            hintStyle: const TextStyle(color: MuseColors.textTertiary, fontSize: 13),
+            filled: true,
+            fillColor: MuseColors.spaceBackground,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: MuseColors.cardBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: MuseColors.cardBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: MuseColors.cyanGlow),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel', style: TextStyle(color: MuseColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MuseColors.cyanGlow,
+              foregroundColor: MuseColors.spaceBackground,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, editController.text.trim()),
+            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (updatedText == null || updatedText.isEmpty || updatedText == message.text) return;
+
+    try {
+      await ref.read(therapistRepositoryProvider).updateMessage(
+            messageId: message.id,
+            newText: updatedText,
+          );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to edit message: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteMessage(TherapistMessage message) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: MuseColors.cardSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Delete Message?',
+          style: TextStyle(color: MuseColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'This message will be permanently removed from the conversation.',
+          style: TextStyle(color: MuseColors.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel', style: TextStyle(color: MuseColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MuseColors.roseGlow,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(therapistRepositoryProvider).deleteMessage(message.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete message: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showMessageOptionsSheet(TherapistMessage message) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: MuseColors.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: MuseColors.cardBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Text(
+                  message.text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: MuseColors.textSecondary,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+              const Divider(color: MuseColors.cardBorder, height: 16),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined, color: MuseColors.cyanGlow),
+                title: const Text(
+                  'Edit Message',
+                  style: TextStyle(
+                    color: MuseColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () => Navigator.pop(sheetContext, 'edit'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: MuseColors.roseGlow),
+                title: const Text(
+                  'Delete Message',
+                  style: TextStyle(
+                    color: MuseColors.roseGlow,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () => Navigator.pop(sheetContext, 'delete'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted || action == null) return;
+    if (action == 'edit') {
+      await _showEditMessageDialog(message);
+    } else if (action == 'delete') {
+      await _confirmDeleteMessage(message);
+    }
   }
 
   @override
@@ -213,75 +418,77 @@ class _ClientTherapistChatScreenState extends ConsumerState<ClientTherapistChatS
 
                       return Align(
                         alignment: isClient ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: MuseSpacing.sm),
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.82,
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isClient
-                                ? MuseColors.cyanGlow.withValues(alpha: 0.18)
-                                : MuseColors.cardSurface,
-                            border: Border.all(
-                              color: isClient
-                                  ? MuseColors.cyanGlow.withValues(alpha: 0.5)
-                                  : MuseColors.cardBorder,
-                              width: 0.8,
+                        child: GestureDetector(
+                          onLongPress: isClient ? () => _showMessageOptionsSheet(m) : null,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: MuseSpacing.sm),
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.82,
                             ),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: isClient ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                            children: [
-                              // Sender Header
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (!isClient) ...[
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: MuseColors.breathMint.withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Text(
-                                        'PRACTITIONER',
-                                        style: TextStyle(
-                                          color: MuseColors.breathMint,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isClient
+                                  ? MuseColors.cyanGlow.withValues(alpha: 0.18)
+                                  : MuseColors.cardSurface,
+                              border: Border.all(
+                                color: isClient
+                                    ? MuseColors.cyanGlow.withValues(alpha: 0.5)
+                                    : MuseColors.cardBorder,
+                                width: 0.8,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: isClient ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                              children: [
+                                // Sender Header
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (!isClient) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: MuseColors.breathMint.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text(
+                                          'PRACTITIONER',
+                                          style: TextStyle(
+                                            color: MuseColors.breathMint,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    Text(
+                                      isClient ? 'You' : m.senderName,
+                                      style: TextStyle(
+                                        color: isClient ? MuseColors.cyanGlow : MuseColors.textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${m.sentAt.hour.toString().padLeft(2, '0')}:${m.sentAt.minute.toString().padLeft(2, '0')}${m.isEdited ? ' • edited' : ''}',
+                                      style: const TextStyle(color: MuseColors.textTertiary, fontSize: 9),
+                                    ),
                                   ],
-                                  Text(
-                                    isClient ? 'You' : m.senderName,
-                                    style: TextStyle(
-                                      color: isClient ? MuseColors.cyanGlow : MuseColors.textPrimary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${m.sentAt.hour.toString().padLeft(2, '0')}:${m.sentAt.minute.toString().padLeft(2, '0')}',
-                                    style: const TextStyle(color: MuseColors.textTertiary, fontSize: 9),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-
-                              // Message Text
-                              Text(
-                                m.text,
-                                style: const TextStyle(
-                                  color: MuseColors.textPrimary,
-                                  fontSize: 13,
-                                  height: 1.35,
                                 ),
-                              ),
+                                const SizedBox(height: 6),
+
+                                // Message Text
+                                Text(
+                                  m.text,
+                                  style: const TextStyle(
+                                    color: MuseColors.textPrimary,
+                                    fontSize: 13,
+                                    height: 1.35,
+                                  ),
+                                ),
 
                               // Attached Resource Action Card
                               if (m.resourceAttachmentTitle != null) ...[
@@ -347,8 +554,9 @@ class _ClientTherapistChatScreenState extends ConsumerState<ClientTherapistChatS
                             ],
                           ),
                         ),
-                      );
-                    },
+                      ),
+                    );
+                  },
                   );
                 },
               ),

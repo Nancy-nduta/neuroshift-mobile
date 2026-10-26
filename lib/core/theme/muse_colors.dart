@@ -7,18 +7,22 @@ class MuseColors {
   // Deep Backgrounds
   static const Color background = Color(0xFF090D16);
   static const Color spaceBackground = background;
+  static const Color obsidian = background;
   static const Color surface = Color(0xFF111726);
   static const Color cardSurface = surface;
   static const Color surfaceElevated = Color(0xFF192236);
+  static const Color deepSurface = surfaceElevated;
   static const Color surfaceSubtle = Color(0xFF0E1422);
 
   // Borders and Dividers
   static const Color border = Color(0xFF222B3D);
   static const Color cardBorder = border;
+  static const Color surfaceDivider = border;
   static const Color borderLight = Color(0xFF2E3A52);
 
   // Text Hierarchy
   static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color pureWhite = textPrimary;
   static const Color textSecondary = Color(0xFF8E9BAE);
   static const Color textTertiary = Color(0xFF5A6678);
   static const Color textMuted = textTertiary;
@@ -27,6 +31,7 @@ class MuseColors {
   // Mind (EEG Brainwaves / Alpha relaxation)
   static const Color mindCyan = Color(0xFF00E5FF);
   static const Color cyanGlow = mindCyan;
+  static const Color tealAccent = mindCyan;
   static const Color mindGlow = Color(0x3300E5FF);
 
   // Heart (Optical PPG Pulse & HRV)
