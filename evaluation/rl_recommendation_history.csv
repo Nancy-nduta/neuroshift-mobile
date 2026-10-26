@@ -1,0 +1,16 @@
+session_num,practiced_resource,observed_reward,q_score_guided_med_1,q_score_guided_med_2,q_score_nature,q_score_piano,action_rationale
+1,Guided Meditation #1,89.5,79.9,68.0,62.0,62.0,Exploit high reward
+2,Guided Meditation #1,87.6,84.9,69.5,62.0,62.0,Exploit high reward
+3,Guided Meditation #1,89.9,88.2,70.5,62.0,62.0,Exploit high reward
+4,Guided Meditation #1,92.6,91.0,71.3,62.0,62.0,Exploit high reward
+5,Guided Meditation #1,87.3,88.6,70.6,62.0,62.0,Exploit high reward
+6,Nature Soundscape,24.1,88.6,70.6,37.3,62.0,Demoted on distraction
+7,Nature Soundscape,31.3,88.6,70.6,33.4,62.0,Demoted on distraction
+8,Nature Soundscape,28.1,88.6,70.6,29.9,62.0,Demoted on distraction
+9,Nature Soundscape,23.1,88.6,70.6,25.5,62.0,Demoted on distraction
+10,Peaceful Piano,83.6,88.6,70.6,25.5,76.1,Policy pivot to soothing melody
+11,Peaceful Piano,80.6,88.6,70.6,25.5,79.0,Policy pivot to soothing melody
+12,Peaceful Piano,80.6,88.6,70.6,25.5,80.0,Policy pivot to soothing melody
+13,Peaceful Piano,82.7,88.6,70.6,25.5,81.8,Policy pivot to soothing melody
+14,Peaceful Piano,76.3,88.6,70.6,25.5,78.2,Policy pivot to soothing melody
+15,Peaceful Piano,76.8,88.6,70.6,25.5,77.3,Policy pivot to soothing melody
