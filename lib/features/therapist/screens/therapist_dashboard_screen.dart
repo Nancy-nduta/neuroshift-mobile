@@ -6,6 +6,7 @@ import '../../../core/theme/muse_spacing.dart';
 import '../../../core/widgets/muse_button.dart';
 import '../../../core/widgets/muse_card.dart';
 import '../../../models/therapist_access_grant.dart';
+import '../../../services/notifications/notification_service.dart';
 import 'patient_detail_screen.dart';
 
 class TherapistDashboardScreen extends ConsumerWidget {
@@ -32,6 +33,7 @@ class TherapistDashboardScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          const NotificationBellButton(),
           Container(
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

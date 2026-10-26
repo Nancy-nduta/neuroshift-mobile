@@ -8,6 +8,7 @@ import 'package:neuroshift_mobile/features/meditate/screens/meditate_home_screen
 import 'package:neuroshift_mobile/features/profile/screens/profile_screen.dart';
 import 'package:neuroshift_mobile/features/resources/screens/resources_screen.dart';
 import 'package:neuroshift_mobile/features/therapist/screens/therapist_dashboard_screen.dart';
+import 'package:neuroshift_mobile/services/notifications/notification_service.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -21,9 +22,26 @@ class _MainShellState extends ConsumerState<MainShell> {
     ref.read(mainNavIndexProvider.notifier).setIndex(index);
   }
 
+  Widget _withUnreadBadge(Widget iconWidget, int unreadCount) {
+    if (unreadCount <= 0) return iconWidget;
+    return Badge(
+      backgroundColor: MuseColors.roseGlow,
+      label: Text(
+        unreadCount > 9 ? '9+' : '$unreadCount',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      child: iconWidget,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTherapist = ref.watch(isTherapistProvider);
+    final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
     final List<Widget> screens;
     final List<NavigationDestination> destinations;
@@ -37,33 +55,51 @@ class _MainShellState extends ConsumerState<MainShell> {
         const AiWellnessChatScreen(),
         const ProfileScreen(),
       ];
-      destinations = const [
+      destinations = [
         NavigationDestination(
-          icon: Icon(Icons.medical_services_outlined, color: MuseColors.textSecondary),
-          selectedIcon: Icon(Icons.medical_services, color: MuseColors.mysticPurple),
+          icon: _withUnreadBadge(
+            const Icon(
+              Icons.medical_services_outlined,
+              color: MuseColors.textSecondary,
+            ),
+            unreadCount,
+          ),
+          selectedIcon: _withUnreadBadge(
+            const Icon(Icons.medical_services, color: MuseColors.mysticPurple),
+            unreadCount,
+          ),
           label: 'Clinical',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.self_improvement_outlined, color: MuseColors.textSecondary),
-          selectedIcon: Icon(Icons.self_improvement, color: MuseColors.cyanGlow),
+        const NavigationDestination(
+          icon: Icon(
+            Icons.self_improvement_outlined,
+            color: MuseColors.textSecondary,
+          ),
+          selectedIcon: Icon(
+            Icons.self_improvement,
+            color: MuseColors.cyanGlow,
+          ),
           label: 'Meditate',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.sensors, color: MuseColors.textSecondary),
           selectedIcon: Icon(Icons.sensors, color: MuseColors.cyanGlow),
           label: 'Connect',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.spa_outlined, color: MuseColors.textSecondary),
           selectedIcon: Icon(Icons.spa, color: MuseColors.cyanGlow),
           label: 'Resources',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.psychology_alt_outlined, color: MuseColors.textSecondary),
+        const NavigationDestination(
+          icon: Icon(
+            Icons.psychology_alt_outlined,
+            color: MuseColors.textSecondary,
+          ),
           selectedIcon: Icon(Icons.psychology_alt, color: MuseColors.cyanGlow),
-          label: 'AI Guide',
+          label: 'Nova',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.person_outline, color: MuseColors.textSecondary),
           selectedIcon: Icon(Icons.person, color: MuseColors.cyanGlow),
           label: 'Profile',
@@ -77,30 +113,45 @@ class _MainShellState extends ConsumerState<MainShell> {
         const AiWellnessChatScreen(),
         const ProfileScreen(),
       ];
-      destinations = const [
-        NavigationDestination(
-          icon: Icon(Icons.self_improvement_outlined, color: MuseColors.textSecondary),
-          selectedIcon: Icon(Icons.self_improvement, color: MuseColors.cyanGlow),
+      destinations = [
+        const NavigationDestination(
+          icon: Icon(
+            Icons.self_improvement_outlined,
+            color: MuseColors.textSecondary,
+          ),
+          selectedIcon: Icon(
+            Icons.self_improvement,
+            color: MuseColors.cyanGlow,
+          ),
           label: 'Meditate',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.sensors, color: MuseColors.textSecondary),
           selectedIcon: Icon(Icons.sensors, color: MuseColors.cyanGlow),
           label: 'Connect',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.spa_outlined, color: MuseColors.textSecondary),
           selectedIcon: Icon(Icons.spa, color: MuseColors.cyanGlow),
           label: 'Resources',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.psychology_alt_outlined, color: MuseColors.textSecondary),
+        const NavigationDestination(
+          icon: Icon(
+            Icons.psychology_alt_outlined,
+            color: MuseColors.textSecondary,
+          ),
           selectedIcon: Icon(Icons.psychology_alt, color: MuseColors.cyanGlow),
-          label: 'AI Guide',
+          label: 'Nova',
         ),
         NavigationDestination(
-          icon: Icon(Icons.person_outline, color: MuseColors.textSecondary),
-          selectedIcon: Icon(Icons.person, color: MuseColors.cyanGlow),
+          icon: _withUnreadBadge(
+            const Icon(Icons.person_outline, color: MuseColors.textSecondary),
+            unreadCount,
+          ),
+          selectedIcon: _withUnreadBadge(
+            const Icon(Icons.person, color: MuseColors.cyanGlow),
+            unreadCount,
+          ),
           label: 'Profile',
         ),
       ];

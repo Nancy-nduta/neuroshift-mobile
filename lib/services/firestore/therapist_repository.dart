@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/app_notification.dart';
 import '../../models/meditation_session.dart';
 import '../../models/therapist_access_grant.dart';
 import '../../models/therapist_message.dart';
@@ -21,6 +22,9 @@ class TherapistRepository {
 
   CollectionReference<Map<String, dynamic>> get _sessionsCol =>
       _firestore.collection('meditation_sessions');
+
+  CollectionReference<Map<String, dynamic>> get _notificationsCol =>
+      _firestore.collection('notifications');
 
   // ==================== 1. GRANTS & INVITATIONS ====================
 
@@ -158,14 +162,87 @@ class TherapistRepository {
         });
   }
 
+  /// Stream messages across multiple clinical grants (up to 10 for Firestore `whereIn`).
+  Stream<List<TherapistMessage>> streamMessagesForGrants(List<String> grantIds) {
+    final cleanIds = grantIds.where((id) => id.isNotEmpty).take(10).toList();
+    if (cleanIds.isEmpty) {
+      return Stream.value(const []);
+    }
+    return _messagesCol
+        .where('grantId', whereIn: cleanIds)
+        .snapshots()
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => TherapistMessage.fromFirestore(doc.data(), doc.id))
+              .toList();
+          list.sort((a, b) => b.sentAt.compareTo(a.sentAt));
+          return list;
+        });
+  }
+
   Future<void> sendMessage(TherapistMessage message) async {
     await _messagesCol.doc(message.id).set(message.toFirestore());
+    try {
+      final notifId = 'notif_msg_${message.id}';
+      final isFromTherapist = message.senderRole == 'therapist';
+      final notif = AppNotification(
+        id: notifId,
+        type: AppNotificationType.chatMessage,
+        title: isFromTherapist
+            ? 'Message from ${message.senderName.isNotEmpty ? message.senderName : "Your Therapist"}'
+            : 'New Patient Message • ${message.senderName}',
+        body: message.text,
+        senderName: message.senderName.isNotEmpty ? message.senderName : 'NeuroShift User',
+        timestamp: message.sentAt,
+        recipientId: message.recipientId,
+        senderId: message.senderId,
+        grantId: message.grantId,
+        isRead: false,
+      );
+      await _notificationsCol.doc(notifId).set(notif.toFirestore());
+    } catch (_) {}
+  }
+
+  /// Edit an existing message sent by the user
+  Future<void> updateMessage({
+    required String messageId,
+    required String newText,
+  }) async {
+    final trimmed = newText.trim();
+    if (trimmed.isEmpty) return;
+    await _messagesCol.doc(messageId).update({
+      'text': trimmed,
+      'isEdited': true,
+      'editedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
+  /// Delete an existing message sent by the user
+  Future<void> deleteMessage(String messageId) async {
+    await _messagesCol.doc(messageId).delete();
   }
 
   // ==================== 4. PRESCRIPTIONS & RECOMMENDED TOOLS ====================
 
   Future<void> prescribeResource(TherapistPrescription prescription) async {
     await _prescriptionsCol.doc(prescription.id).set(prescription.toFirestore());
+    try {
+      final notifId = 'notif_rx_${prescription.id}';
+      final notif = AppNotification(
+        id: notifId,
+        type: AppNotificationType.newPrescription,
+        title: 'New Prescribed Practice from ${prescription.therapistName}',
+        body: prescription.instructions != null && prescription.instructions!.trim().isNotEmpty
+            ? '${prescription.resourceTitle} — "${prescription.instructions!.trim()}"'
+            : 'Recommended practice: ${prescription.resourceTitle}',
+        senderName: prescription.therapistName,
+        timestamp: prescription.prescribedAt,
+        recipientId: prescription.clientId,
+        senderId: prescription.therapistId,
+        isRead: false,
+      );
+      await _notificationsCol.doc(notifId).set(notif.toFirestore());
+    } catch (_) {}
   }
 
   Stream<List<TherapistPrescription>> streamPrescriptionsForClient(String clientId) {
@@ -210,5 +287,24 @@ class TherapistRepository {
       'patientFeedback': patientFeedback,
       'completedAt': Timestamp.fromDate(DateTime.now()),
     });
+    try {
+      final rxDoc = await _prescriptionsCol.doc(prescriptionId).get();
+      if (rxDoc.exists && rxDoc.data() != null) {
+        final rx = TherapistPrescription.fromFirestore(rxDoc.data()!, rxDoc.id);
+        final notifId = 'notif_rx_done_${rx.id}';
+        final notif = AppNotification(
+          id: notifId,
+          type: AppNotificationType.prescriptionCompleted,
+          title: 'Practice Completed by ${rx.clientEmail}',
+          body: 'Completed "${rx.resourceTitle}" • Calm: ${patientCalmScore.toStringAsFixed(0)}%',
+          senderName: rx.clientEmail,
+          timestamp: DateTime.now(),
+          recipientId: rx.therapistId,
+          senderId: rx.clientId,
+          isRead: false,
+        );
+        await _notificationsCol.doc(notifId).set(notif.toFirestore());
+      }
+    } catch (_) {}
   }
 }

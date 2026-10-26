@@ -143,16 +143,18 @@ rules_version = '2';
 // Collection 10: therapist_messages/{messageId}
 // Document ID: {messageId}
 // Fields:
-//   - id: string (required, matches messageId, length 1-128)
-//   - senderId: string (required, matches auth.uid, length 1-128)
+//   - id: string (required, matches messageId, length 1-128, immutable)
+//   - senderId: string (required, matches auth.uid, length 1-128, immutable)
 //   - senderName: string (required, length 1-100)
-//   - senderRole: string (required, in ['client', 'therapist'])
-//   - recipientId: string (required, length 1-128)
-//   - grantId: string (required, length 1-128)
+//   - senderRole: string (required, in ['client', 'therapist'], immutable)
+//   - recipientId: string (required, length 1-128, immutable)
+//   - grantId: string (required, length 1-128, immutable)
 //   - text: string (required, length 1-2000)
 //   - resourceAttachmentId: string or null (optional/nullable, length <= 128)
 //   - resourceAttachmentTitle: string or null (optional/nullable, length <= 150)
-//   - sentAt: timestamp or ISO string (required)
+//   - sentAt: timestamp or ISO string (required, immutable)
+//   - isEdited: bool or null (optional/nullable)
+//   - editedAt: timestamp or ISO string or null (optional/nullable)
 //
 // Collection 11: therapist_prescriptions/{prescriptionId}
 // Document ID: {prescriptionId}
@@ -173,6 +175,36 @@ rules_version = '2';
 //   - patientHelpfulnessRating: int or null (optional/nullable, 1 to 5)
 //   - patientFeedback: string or null (optional/nullable, length <= 500)
 //   - completedAt: timestamp or ISO string or null (optional/nullable)
+//
+// Collection 12: ai_chat_messages/{messageId}
+// Document ID: {messageId}
+// Fields:
+//   - id: string (required, matches messageId, length 1-128, immutable)
+//   - userId: string (required, matches auth.uid, length 1-128, immutable)
+//   - text: string (required, length 1-5000)
+//   - isUser: bool (required)
+//   - timestamp: timestamp or ISO string (required, immutable)
+//   - suggestedChips: list of strings or null (optional/nullable, max 10 items)
+//   - recommendedResourceId: string or null (optional/nullable, length <= 128)
+//   - responseMode: string (required, length 1-50)
+//   - safetyStatus: string (required, length 1-50)
+//   - fallbackReason: string or null (optional/nullable, length <= 500)
+//
+// Collection 13: notifications/{notificationId}
+// Document ID: {notificationId}
+// Fields:
+//   - id: string (required, matches notificationId, length 1-128, immutable)
+//   - recipientId: string (required, length 1-128, immutable)
+//   - senderId: string (required, matches auth.uid on create, length 1-128, immutable)
+//   - senderName: string (required, length 1-100, immutable)
+//   - type: string (required, in ['chatMessage', 'newPrescription', 'prescriptionCompleted', 'grantInvitation', 'grantAccepted', 'systemAlert'], immutable)
+//   - title: string (required, length 1-200, immutable)
+//   - body: string (required, length 1-1000, immutable)
+//   - isRead: bool (required, mutable)
+//   - createdAt: timestamp or ISO string (required, immutable)
+//   - readAt: timestamp or ISO string or null (optional/nullable, mutable)
+//   - grantId: string or null (optional/nullable, length <= 128, immutable)
+//   - targetRoute: string or null (optional/nullable, length <= 128, immutable)
 //
 // Catch-all: Deny all other collections and operations by default.
 // ===============================================================
@@ -1013,7 +1045,9 @@ service cloud.firestore {
         'text',
         'resourceAttachmentId',
         'resourceAttachmentTitle',
-        'sentAt'
+        'sentAt',
+        'isEdited',
+        'editedAt'
       ]);
     }
 
@@ -1051,6 +1085,20 @@ service cloud.firestore {
         (data.resourceAttachmentTitle is string && data.resourceAttachmentTitle.size() <= 150);
     }
 
+    /// Validates optional isEdited flag (nullable or optional, bool).
+    function isValidMessageIsEdited(data) {
+      return !('isEdited' in data) ||
+        data.isEdited == null ||
+        data.isEdited is bool;
+    }
+
+    /// Validates optional editedAt timestamp or ISO string (nullable or optional).
+    function isValidMessageEditedAt(data) {
+      return !('editedAt' in data) ||
+        data.editedAt == null ||
+        isValidTimestampOrIso(data.editedAt);
+    }
+
     /// Validates complete therapist message structure, types, and values.
     function isValidTherapistMessage(messageId) {
       let data = request.resource.data;
@@ -1079,7 +1127,19 @@ service cloud.firestore {
         data.text.size() <= 2000 &&
         isValidResourceAttachmentId(data) &&
         isValidResourceAttachmentTitle(data) &&
-        isValidTimestampOrIso(data.sentAt);
+        isValidTimestampOrIso(data.sentAt) &&
+        isValidMessageIsEdited(data) &&
+        isValidMessageEditedAt(data);
+    }
+
+    /// Enforces immutability of id, senderId, senderRole, recipientId, grantId, and sentAt on message updates.
+    function isImmutableTherapistMessageFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.senderId == resource.data.senderId &&
+        request.resource.data.senderRole == resource.data.senderRole &&
+        request.resource.data.recipientId == resource.data.recipientId &&
+        request.resource.data.grantId == resource.data.grantId &&
+        request.resource.data.sentAt == resource.data.sentAt;
     }
 
     // ===============================================================
@@ -1216,6 +1276,207 @@ service cloud.firestore {
         request.resource.data.therapistId == resource.data.therapistId &&
         request.resource.data.clientId == resource.data.clientId &&
         request.resource.data.prescribedAt == resource.data.prescribedAt;
+    }
+
+    // ===============================================================
+    // Collection 12: ai_chat_messages/{messageId} Helpers & Validators
+    // ===============================================================
+
+    /// Validates that AI chat message contains only allowed fields.
+    function hasOnlyAllowedAiChatMessageFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'userId',
+        'text',
+        'isUser',
+        'timestamp',
+        'suggestedChips',
+        'recommendedResourceId',
+        'responseMode',
+        'safetyStatus',
+        'fallbackReason'
+      ]);
+    }
+
+    /// Validates that all required AI chat message fields are present.
+    function hasAllRequiredAiChatMessageFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'userId',
+        'text',
+        'isUser',
+        'timestamp',
+        'responseMode',
+        'safetyStatus'
+      ]);
+    }
+
+    /// Validates optional suggested chips (list <= 10 items or null).
+    function isValidAiSuggestedChips(data) {
+      return !('suggestedChips' in data) ||
+        data.suggestedChips == null ||
+        (data.suggestedChips is list && data.suggestedChips.size() <= 10);
+    }
+
+    /// Validates optional recommended resource ID (string <= 128 chars or null).
+    function isValidAiRecommendedResourceId(data) {
+      return !('recommendedResourceId' in data) ||
+        data.recommendedResourceId == null ||
+        (data.recommendedResourceId is string && data.recommendedResourceId.size() <= 128);
+    }
+
+    /// Validates optional fallback reason (string <= 500 chars or null).
+    function isValidAiFallbackReason(data) {
+      return !('fallbackReason' in data) ||
+        data.fallbackReason == null ||
+        (data.fallbackReason is string && data.fallbackReason.size() <= 500);
+    }
+
+    /// Validates complete AI chat message structure, types, and values.
+    function isValidAiChatMessage(messageId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedAiChatMessageFields(data) &&
+        hasAllRequiredAiChatMessageFields(data) &&
+        data.id is string &&
+        data.id == messageId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.userId is string &&
+        data.userId == request.auth.uid &&
+        data.userId.size() >= 1 &&
+        data.userId.size() <= 128 &&
+        data.text is string &&
+        data.text.size() >= 1 &&
+        data.text.size() <= 5000 &&
+        data.isUser is bool &&
+        isValidTimestampOrIso(data.timestamp) &&
+        data.responseMode is string &&
+        data.responseMode.size() >= 1 &&
+        data.responseMode.size() <= 50 &&
+        data.safetyStatus is string &&
+        data.safetyStatus.size() >= 1 &&
+        data.safetyStatus.size() <= 50 &&
+        isValidAiSuggestedChips(data) &&
+        isValidAiRecommendedResourceId(data) &&
+        isValidAiFallbackReason(data);
+    }
+
+    // ===============================================================
+    // Collection 13: notifications/{notificationId} Helpers & Validators
+    // ===============================================================
+
+    /// Validates that notification document contains only allowed fields.
+    function hasOnlyAllowedNotificationFields(data) {
+      return data.keys().hasOnly([
+        'id',
+        'recipientId',
+        'senderId',
+        'senderName',
+        'type',
+        'title',
+        'body',
+        'isRead',
+        'createdAt',
+        'readAt',
+        'grantId',
+        'targetRoute'
+      ]);
+    }
+
+    /// Validates that all required notification fields are present.
+    function hasRequiredNotificationFields(data) {
+      return data.keys().hasAll([
+        'id',
+        'recipientId',
+        'senderId',
+        'senderName',
+        'type',
+        'title',
+        'body',
+        'isRead',
+        'createdAt'
+      ]);
+    }
+
+    /// Validates notification type choice.
+    function isValidNotificationType(type) {
+      return type is string &&
+        (type == 'chatMessage' ||
+         type == 'newPrescription' ||
+         type == 'prescriptionCompleted' ||
+         type == 'grantInvitation' ||
+         type == 'grantAccepted' ||
+         type == 'systemAlert');
+    }
+
+    /// Validates optional grantId (optional or nullable, string <= 128 chars).
+    function isValidNotificationGrantId(data) {
+      return !('grantId' in data) ||
+        data.grantId == null ||
+        (data.grantId is string && data.grantId.size() <= 128);
+    }
+
+    /// Validates optional targetRoute (optional or nullable, string <= 128 chars).
+    function isValidNotificationTargetRoute(data) {
+      return !('targetRoute' in data) ||
+        data.targetRoute == null ||
+        (data.targetRoute is string && data.targetRoute.size() <= 128);
+    }
+
+    /// Validates optional readAt timestamp or ISO string (optional or nullable).
+    function isValidNotificationReadAt(data) {
+      return !('readAt' in data) ||
+        data.readAt == null ||
+        isValidTimestampOrIso(data.readAt);
+    }
+
+    /// Validates complete notification structure, types, and values.
+    function isValidNotification(notificationId) {
+      let data = request.resource.data;
+      return hasOnlyAllowedNotificationFields(data) &&
+        hasRequiredNotificationFields(data) &&
+        data.id is string &&
+        data.id == notificationId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 128 &&
+        data.recipientId is string &&
+        data.recipientId.size() >= 1 &&
+        data.recipientId.size() <= 128 &&
+        data.senderId is string &&
+        (resource != null || data.senderId == request.auth.uid) &&
+        data.senderId.size() >= 1 &&
+        data.senderId.size() <= 128 &&
+        data.senderName is string &&
+        data.senderName.size() >= 1 &&
+        data.senderName.size() <= 100 &&
+        isValidNotificationType(data.type) &&
+        data.title is string &&
+        data.title.size() >= 1 &&
+        data.title.size() <= 200 &&
+        data.body is string &&
+        data.body.size() >= 1 &&
+        data.body.size() <= 1000 &&
+        data.isRead is bool &&
+        isValidTimestampOrIso(data.createdAt) &&
+        isValidNotificationReadAt(data) &&
+        isValidNotificationGrantId(data) &&
+        isValidNotificationTargetRoute(data);
+    }
+
+    /// Enforces immutability of id, recipientId, senderId, senderName, type, title, body, createdAt, grantId, and targetRoute on notification updates.
+    function isImmutableNotificationFieldsUnchanged() {
+      return request.resource.data.id == resource.data.id &&
+        request.resource.data.recipientId == resource.data.recipientId &&
+        request.resource.data.senderId == resource.data.senderId &&
+        request.resource.data.senderName == resource.data.senderName &&
+        request.resource.data.type == resource.data.type &&
+        request.resource.data.title == resource.data.title &&
+        request.resource.data.body == resource.data.body &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        (!('grantId' in resource.data || 'grantId' in request.resource.data) ||
+         (('grantId' in resource.data) && ('grantId' in request.resource.data) && request.resource.data.grantId == resource.data.grantId)) &&
+        (!('targetRoute' in resource.data || 'targetRoute' in request.resource.data) ||
+         (('targetRoute' in resource.data) && ('targetRoute' in request.resource.data) && request.resource.data.targetRoute == resource.data.targetRoute));
     }
 
     // ===============================================================
@@ -1473,11 +1734,17 @@ service cloud.firestore {
         request.resource.data.id == messageId &&
         isValidTherapistMessage(messageId);
 
-      // 3. Update: Denied (immutable chat history)
-      allow update: if false;
+      // 3. Update: Authenticated sender only, immutable core fields, domain validator
+      allow update: if isAuthenticated() &&
+        resource.data.senderId == request.auth.uid &&
+        request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.id == messageId &&
+        isImmutableTherapistMessageFieldsUnchanged() &&
+        isValidTherapistMessage(messageId);
 
-      // 4. Delete: Denied (immutable chat history)
-      allow delete: if false;
+      // 4. Delete: Authenticated sender only
+      allow delete: if isAuthenticated() &&
+        resource.data.senderId == request.auth.uid;
     }
 
     // ===============================================================
@@ -1503,6 +1770,55 @@ service cloud.firestore {
 
       // 4. Delete: Explicitly disallowed to preserve clinical audit trail
       allow delete: if false;
+    }
+
+    // ===============================================================
+    // Collection 12: ai_chat_messages/{messageId}
+    // ===============================================================
+    match /ai_chat_messages/{messageId} {
+      // 1. Read: ONLY the authenticated owner (confidential AI conversation, absolute privacy)
+      allow read: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      // 2. Create: ONLY the authenticated owner can create
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == messageId &&
+        isValidAiChatMessage(messageId);
+
+      // 3. Update: Disallowed (chats are immutable)
+      allow update: if false;
+
+      // 4. Delete: ONLY the authenticated owner can delete (user right to erasure)
+      allow delete: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Collection 13: notifications/{notificationId}
+    // ===============================================================
+    match /notifications/{notificationId} {
+      // 1. Read: Authenticated recipient only
+      allow read: if isAuthenticated() &&
+        resource.data.recipientId == request.auth.uid;
+
+      // 2. Create: Authenticated sender only, notificationId matches id, domain validator
+      allow create: if isAuthenticated() &&
+        request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.id == notificationId &&
+        isValidNotification(notificationId);
+
+      // 3. Update: Authenticated recipient only, immutable core fields, domain validator
+      allow update: if isAuthenticated() &&
+        resource.data.recipientId == request.auth.uid &&
+        request.resource.data.recipientId == request.auth.uid &&
+        request.resource.data.id == notificationId &&
+        isImmutableNotificationFieldsUnchanged() &&
+        isValidNotification(notificationId);
+
+      // 4. Delete: Authenticated recipient only (dismissal / right to erasure)
+      allow delete: if isAuthenticated() &&
+        resource.data.recipientId == request.auth.uid;
     }
   }
 }
