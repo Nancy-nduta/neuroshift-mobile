@@ -55,27 +55,27 @@ class _HolographicBrainwaveVisualizerState
 
   String _getDominantBand() {
     double maxVal = widget.alpha;
-    String dominant = 'ALPHA (Calm Mindfulness)';
+    String dominant = 'Alpha • Calm & Relaxed';
 
     if (widget.beta > maxVal) {
       maxVal = widget.beta;
-      dominant = 'BETA (Active Focus)';
+      dominant = 'Beta • Focused & Alert';
     }
     if (widget.theta > maxVal) {
       maxVal = widget.theta;
-      dominant = 'THETA (Deep Flow)';
+      dominant = 'Theta • Deep Meditation';
     }
     if (widget.delta > maxVal) {
       maxVal = widget.delta;
-      dominant = 'DELTA (Restorative Stillness)';
+      dominant = 'Delta • Deep Rest';
     }
     if (widget.gamma > maxVal) {
       maxVal = widget.gamma;
-      dominant = 'GAMMA (Peak Cognition)';
+      dominant = 'Gamma • Active Thinking';
     }
 
     if (maxVal < 1.0 && (!widget.isConnected || widget.packetsReceived < 15)) {
-      return 'SYNTHESIZING BASELINE...';
+      return 'Measuring brainwaves...';
     }
     return dominant;
   }
@@ -127,7 +127,7 @@ class _HolographicBrainwaveVisualizerState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Bar with Futuristic Telemetry Badges & View Selector
+          // Header Bar with Responsive Layout to Prevent Any Overflow
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: MuseSpacing.md,
@@ -136,55 +136,60 @@ class _HolographicBrainwaveVisualizerState
             child: Row(
               children: [
                 Container(
-                  width: 10,
-                  height: 10,
+                  width: 9,
+                  height: 9,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: dominantColor,
                     boxShadow: [
                       BoxShadow(
                         color: dominantColor.withValues(alpha: 0.9),
-                        blurRadius: 10,
-                        spreadRadius: 3,
+                        blurRadius: 8,
+                        spreadRadius: 2,
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'EEG QUANTUM SPECTRUM',
-                  style: TextStyle(
-                    color: MuseColors.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
+                const Expanded(
+                  child: Text(
+                    'BRAINWAVE RHYTHMS',
+                    style: TextStyle(
+                      color: MuseColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
-                // View Selector Toggle (CHANNELS / SYNTHESIS / POWER)
+                const SizedBox(width: 8),
+                // View Selector Toggle (WAVES / FLOW / BARS)
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF131B2E),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: const Color(0xFF263554),
                       width: 0.8,
                     ),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildToggleButton(
-                        label: 'CHANNELS',
+                        label: 'WAVES',
                         isSelected: _selectedView == 0,
                         onTap: () => setState(() => _selectedView = 0),
                       ),
                       _buildToggleButton(
-                        label: 'SYNTHESIS',
+                        label: 'FLOW',
                         isSelected: _selectedView == 1,
                         onTap: () => setState(() => _selectedView = 1),
                       ),
                       _buildToggleButton(
-                        label: 'POWER',
+                        label: 'BARS',
                         isSelected: _selectedView == 2,
                         onTap: () => setState(() => _selectedView = 2),
                       ),
@@ -308,18 +313,18 @@ class _HolographicBrainwaveVisualizerState
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF00E5FF).withValues(alpha: 0.25) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: isSelected ? const Color(0xFF00E5FF) : MuseColors.textSecondary,
-            fontSize: 9,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.8,
+            fontSize: 8.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
           ),
         ),
       ),
@@ -384,40 +389,40 @@ class _HolographicBrainwaveVisualizerState
     return Column(
       children: [
         _buildSpectralBandRow(
-          band: 'γ GAMMA (30–100 Hz)',
-          role: 'Peak Cognition & Neural Binding',
+          band: 'γ Gamma (High Energy)',
+          role: 'Active thinking & quick processing',
           power: widget.gamma,
           percent: (widget.gamma / safeTotal) * 100,
           color: const Color(0xFFEC4899),
         ),
         const SizedBox(height: 10),
         _buildSpectralBandRow(
-          band: 'β BETA (13–30 Hz)',
-          role: 'Active Focus & Analytical Thought',
+          band: 'β Beta (Focused)',
+          role: 'Alert attention & problem solving',
           power: widget.beta,
           percent: (widget.beta / safeTotal) * 100,
           color: const Color(0xFF9D4EDD),
         ),
         const SizedBox(height: 10),
         _buildSpectralBandRow(
-          band: 'α ALPHA (8–13 Hz)',
-          role: 'Calm Mindfulness & Relaxation',
+          band: 'α Alpha (Calm)',
+          role: 'Relaxed mindfulness & inner quiet',
           power: widget.alpha,
           percent: (widget.alpha / safeTotal) * 100,
           color: const Color(0xFF00E5FF),
         ),
         const SizedBox(height: 10),
         _buildSpectralBandRow(
-          band: 'θ THETA (4–8 Hz)',
-          role: 'Deep Meditation & Creative Flow',
+          band: 'θ Theta (Deep Calm)',
+          role: 'Deep meditative flow & creativity',
           power: widget.theta,
           percent: (widget.theta / safeTotal) * 100,
           color: const Color(0xFFFFB703),
         ),
         const SizedBox(height: 10),
         _buildSpectralBandRow(
-          band: 'δ DELTA (0.5–4 Hz)',
-          role: 'Restorative Stillness & Deep Healing',
+          band: 'δ Delta (Rest)',
+          role: 'Restorative body & mind recovery',
           power: widget.delta,
           percent: (widget.delta / safeTotal) * 100,
           color: const Color(0xFF3B82F6),

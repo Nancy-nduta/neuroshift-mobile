@@ -79,21 +79,26 @@ class _CyberneticHeartRateVisualizerState
     // RR interval estimation in milliseconds
     final pulseIntervalMs = hasValidBpm ? (60000 / effectiveBpm).round() : 0;
 
-    // Autonomic state determination from RMSSD
+    // Autonomic state determination from RMSSD (heart rate variability)
     final rmssd = widget.hrvRmssd ?? 45.0;
     final String ansLabel;
+    final String ansDescription;
     final Color ansColor;
     if (!hasValidBpm) {
-      ansLabel = 'MEASURING CARDIAC CADENCE...';
+      ansLabel = 'MEASURING HEART RHYTHM...';
+      ansDescription = 'Listening to your pulse signals';
       ansColor = MuseColors.textSecondary;
     } else if (rmssd >= 55.0) {
-      ansLabel = 'PARASYMPATHETIC (DEEP VAGAL TONE)';
+      ansLabel = 'DEEP RELAXATION (REST & RECOVER)';
+      ansDescription = 'Your body is in a calm, soothing recovery state';
       ansColor = const Color(0xFF00FFB2); // Emerald Mint
     } else if (rmssd >= 35.0) {
-      ansLabel = 'BALANCED AUTONOMIC HOMEOSTASIS';
+      ansLabel = 'BALANCED & STEADY';
+      ansDescription = 'Healthy calm balance between mind and heart';
       ansColor = const Color(0xFF00E5FF); // Electric Cyan
     } else {
-      ansLabel = 'SYMPATHETIC ELEVATION (ACTIVE)';
+      ansLabel = 'ALERT & ACTIVE';
+      ansDescription = 'Higher energy state; take deep breaths to unwind';
       ansColor = const Color(0xFFFF5252); // Alert Coral
     }
 
@@ -150,12 +155,12 @@ class _CyberneticHeartRateVisualizerState
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'CARDIAC COHERENCE & PPG ECG',
+                  'HEART RHYTHM & PULSE',
                   style: TextStyle(
                     color: MuseColors.textPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 1.5,
+                    letterSpacing: 1.2,
                   ),
                 ),
                 const Spacer(),
@@ -166,7 +171,7 @@ class _CyberneticHeartRateVisualizerState
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    hasValidBpm ? 'PPG LOCKED' : 'CALIBRATING',
+                    hasValidBpm ? 'LIVE PULSE' : 'CALIBRATING',
                     style: TextStyle(
                       color: hasValidBpm ? const Color(0xFFFF2A6D) : MuseColors.textSecondary,
                       fontSize: 9,
@@ -193,28 +198,48 @@ class _CyberneticHeartRateVisualizerState
               ),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Icon(Icons.favorite_border, color: ansColor, size: 14),
                 const SizedBox(width: 6),
-                Text(
-                  'STATE: ',
-                  style: TextStyle(
-                    color: ansColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                ),
                 Expanded(
-                  child: Text(
-                    ansLabel,
-                    style: const TextStyle(
-                      color: MuseColors.textPrimary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'STATE: ',
+                            style: TextStyle(
+                              color: ansColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              ansLabel,
+                              style: const TextStyle(
+                                color: MuseColors.textPrimary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        ansDescription,
+                        style: const TextStyle(
+                          color: MuseColors.textMuted,
+                          fontSize: 9.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -261,22 +286,25 @@ class _CyberneticHeartRateVisualizerState
                   unit: 'BPM',
                   icon: Icons.favorite,
                   accentColor: const Color(0xFFFF2A6D),
+                  subtitle: 'Beats per min',
                 ),
                 // Pulse Interval
                 _buildTelemetryBox(
-                  label: 'R-R INTERVAL',
+                  label: 'BEAT GAP',
                   value: pulseIntervalMs > 0 ? '$pulseIntervalMs' : '--',
                   unit: 'ms',
                   icon: Icons.timer,
                   accentColor: const Color(0xFF00E5FF),
+                  subtitle: 'Pace between beats',
                 ),
                 // HRV RMSSD
                 _buildTelemetryBox(
-                  label: 'HRV RMSSD',
+                  label: 'CALM (HRV)',
                   value: rmssd > 0 ? rmssd.toStringAsFixed(0) : '--',
                   unit: 'ms',
                   icon: Icons.graphic_eq,
                   accentColor: const Color(0xFF00FFB2),
+                  subtitle: 'Higher is calmer',
                 ),
               ],
             ),
@@ -292,9 +320,10 @@ class _CyberneticHeartRateVisualizerState
     required String unit,
     required IconData icon,
     required Color accentColor,
+    String? subtitle,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF131B2E),
         borderRadius: BorderRadius.circular(10),
@@ -346,6 +375,16 @@ class _CyberneticHeartRateVisualizerState
               ],
             ),
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                color: MuseColors.textTertiary,
+                fontSize: 8,
+              ),
+            ),
+          ],
         ],
       ),
     );

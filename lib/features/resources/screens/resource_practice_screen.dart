@@ -415,6 +415,16 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
                 ],
               ),
 
+              const SizedBox(height: MuseSpacing.sm),
+              Text(
+                widget.resource.description,
+                style: const TextStyle(
+                  color: MuseColors.textSecondary,
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+              ),
+
               const SizedBox(height: MuseSpacing.lg),
 
               // 3. Headband Status Card or Connection Prompt
@@ -427,25 +437,28 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
 
               // 4. Complete Practice Button
               MuseButton(
-                label: 'End Practice & View Report',
+                label: isConnected
+                    ? 'End Practice & View Report'
+                    : 'Finish Session',
                 icon: Icons.check_circle_outline,
                 width: double.infinity,
                 onPressed: () => _completePractice(usedHeadband: isConnected),
               ),
 
-              const SizedBox(height: MuseSpacing.sm),
-
-              const Center(
-                child: Text(
-                  'Completing the session records your EEG metrics and updates your personalized recommendations.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: MuseColors.textTertiary,
-                    fontSize: 11,
-                    height: 1.4,
+              if (isConnected) ...[
+                const SizedBox(height: MuseSpacing.sm),
+                const Center(
+                  child: Text(
+                    'Completing the session records your EEG metrics and updates your personalized recommendations.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: MuseColors.textTertiary,
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -453,76 +466,47 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
     );
   }
 
-  /// Prompt card shown when the headband is not yet connected
+  /// Compact banner shown when watching a resource without a connected headband
   Widget _buildConnectPromptCard(BuildContext context) {
     return MuseCard(
-      borderColor: MuseColors.bodyAmber.withValues(alpha: 0.5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(14),
+      borderColor: MuseColors.bodyAmber.withValues(alpha: 0.35),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: MuseColors.bodyAmber.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.headset, color: MuseColors.bodyAmber, size: 20),
-              ),
-              const SizedBox(width: MuseSpacing.sm),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Muse 2 Headband Not Connected',
-                      style: TextStyle(
-                        color: MuseColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      'Connect to track live EEG brainwaves, heart rate & stillness.',
-                      style: TextStyle(
-                        color: MuseColors.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: MuseColors.bodyAmber.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.sensors_off_rounded, color: MuseColors.bodyAmber, size: 20),
           ),
-          const SizedBox(height: MuseSpacing.md),
-          const Text(
-            'Experience real-time neurofeedback: see your Alpha, Beta, Theta, Delta and Gamma waves animate as you listen to this resource.',
-            style: TextStyle(
-              color: MuseColors.textTertiary,
-              fontSize: 12,
-              height: 1.4,
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Watching Without Sensor',
+                  style: TextStyle(
+                    color: MuseColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13.5,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Pair your Muse 2 if you want live brainwave and heart rate tracking.',
+                  style: TextStyle(
+                    color: MuseColors.textSecondary,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: MuseSpacing.md),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: MuseSpacing.xs),
-              child: BioluminescentNeuralOrb(
-                mindState: MindState.neutral,
-                size: 140,
-                centerLabel: 'STANDBY',
-                subLabel: 'MUSE 2 READY',
-                showTelemetryRings: true,
-              ),
-            ),
-          ),
-          const SizedBox(height: MuseSpacing.md),
-          MuseButton(
-            label: 'Connect Muse 2 Headband',
-            icon: Icons.bluetooth_searching,
-            variant: MuseButtonVariant.secondary,
-            width: double.infinity,
+          const SizedBox(width: 8),
+          TextButton(
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -532,6 +516,14 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
                 ),
               );
             },
+            child: const Text(
+              'Connect',
+              style: TextStyle(
+                color: MuseColors.cyanGlow,
+                fontWeight: FontWeight.bold,
+                fontSize: 12.5,
+              ),
+            ),
           ),
         ],
       ),
@@ -559,8 +551,8 @@ class _ResourcePracticeScreenState extends ConsumerState<ResourcePracticeScreen>
                   ? 'CALIBRATING'
                   : signal.mindState.name.toUpperCase(),
               subLabel: status.isConnected
-                  ? 'NEURAL CORE • ${status.packetsReceived} PKTS'
-                  : 'AWAITING HARDWARE',
+                  ? 'LIVE BIOFEEDBACK'
+                  : 'CONNECTING...',
               showTelemetryRings: true,
             ),
           ),
