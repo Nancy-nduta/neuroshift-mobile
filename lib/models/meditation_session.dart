@@ -70,6 +70,30 @@ class MeditationSession {
     };
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'mode': mode.name,
+      'startedAt': startedAt.toIso8601String(),
+      'completedAt': completedAt.toIso8601String(),
+      'durationSeconds': durationSeconds,
+      'calmPercent': calmPercent,
+      'neutralPercent': neutralPercent,
+      'activePercent': activePercent,
+      'calmPoints': calmPoints,
+      'birdsAwarded': birdsAwarded,
+      'recoveries': recoveries,
+      'averageBpm': averageBpm,
+      'averageRmssd': averageRmssd,
+      'averageStillness': averageStillness,
+      'notes': notes,
+    };
+  }
+
+  factory MeditationSession.fromJson(Map<String, dynamic> json) =>
+      MeditationSession.fromFirestore(json, json['id'] as String? ?? '');
+
   factory MeditationSession.fromFirestore(Map<String, dynamic> map, String docId) {
     DateTime parseDate(dynamic val) {
       if (val is Timestamp) return val.toDate();

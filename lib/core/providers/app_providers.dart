@@ -4,6 +4,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/app_user.dart';
+import '../../models/consent_record.dart';
 import '../../models/meditation_session.dart';
 import '../../models/sensor_status.dart';
 import '../../models/signal_reading.dart';
@@ -11,6 +12,7 @@ import '../../models/therapist_access_grant.dart';
 import '../../models/therapist_prescription.dart';
 import '../../models/therapist_profile.dart';
 import '../../services/auth/auth_service.dart';
+import '../../services/firestore/consent_repository.dart';
 import '../../services/firestore/session_repository.dart';
 import '../../services/firestore/therapist_repository.dart';
 import '../../services/sensors/muse_bluetooth_service.dart';
@@ -18,6 +20,10 @@ import '../../services/sensors/muse_bluetooth_service.dart';
 // Services
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
+});
+
+final consentRepositoryProvider = Provider<ConsentRepository>((ref) {
+  return ConsentRepository();
 });
 
 final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
@@ -39,6 +45,12 @@ final currentUserProfileProvider = FutureProvider<AppUser?>((ref) async {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return null;
   return ref.watch(authServiceProvider).getUserProfile(user.uid);
+});
+
+final userConsentRecordProvider = StreamProvider<ConsentRecord?>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(null);
+  return ref.watch(consentRepositoryProvider).streamConsentRecord(user.uid);
 });
 
 final currentTherapistProfileProvider = StreamProvider<TherapistProfile?>((ref) {
@@ -76,8 +88,8 @@ final discoveredDevicesProvider = StreamProvider<List<ScanResult>>((ref) {
 // Sessions Stream
 final userSessionsProvider = StreamProvider<List<MeditationSession>>((ref) {
   final user = ref.watch(authStateProvider).value;
-  if (user == null) return Stream.value([]);
-  return ref.watch(sessionRepositoryProvider).streamUserSessions(user.uid);
+  final uid = user?.uid ?? 'anonymous';
+  return ref.watch(sessionRepositoryProvider).streamUserSessions(uid);
 });
 
 // Therapist & Care Team Providers

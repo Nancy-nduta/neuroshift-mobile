@@ -6,6 +6,9 @@ import '../../../core/theme/muse_spacing.dart';
 import '../../../core/widgets/muse_button.dart';
 import '../../../core/widgets/muse_card.dart';
 import '../../../models/meditation_session.dart';
+import '../../resources/models/resource_evaluation.dart';
+import '../../resources/providers/resource_ranking_provider.dart';
+import '../../resources/widgets/rl_session_feedback_card.dart';
 
 class SessionResultsScreen extends ConsumerStatefulWidget {
   final MeditationSession session;
@@ -18,15 +21,106 @@ class SessionResultsScreen extends ConsumerStatefulWidget {
 
 class _SessionResultsScreenState extends ConsumerState<SessionResultsScreen> {
   bool _isSaving = false;
-  int _userRating = 5; // Default 5 stars
+  RlFeedbackData _feedback = const RlFeedbackData();
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure session is stored immediately so calm score is never lost if user closes the app
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        ref.read(sessionRepositoryProvider).saveSession(widget.session);
+      } catch (_) {}
+    });
+  }
+
+  bool get _hasSensorTelemetry =>
+      widget.session.calmPercent > 0 ||
+      widget.session.neutralPercent > 0 ||
+      widget.session.activePercent > 0;
+
+  ResourceEvaluation _buildEvaluation() {
+    final s = widget.session;
+    final temp = ResourceEvaluation(
+      resourceId: 'mode_${s.mode.type.name}',
+      resourceTitle: '${s.mode.displayName} Practice',
+      category: 'Guided Meditation',
+      calmPercent: s.calmPercent,
+      neutralPercent: s.neutralPercent,
+      activePercent: s.activePercent,
+      durationSeconds: s.durationSeconds,
+      averageBpm: s.averageBpm > 0 ? s.averageBpm : null,
+      averageStillness: s.averageStillness,
+      starRating: _feedback.starRating,
+      moodShift: _feedback.derivedMoodShift,
+      wouldRecommend: _feedback.wouldUseAgain,
+      usedHeadband: _hasSensorTelemetry,
+      notes: _feedback.notes.trim().isNotEmpty ? _feedback.notes.trim() : null,
+      timestamp: DateTime.now(),
+      preValence: _feedback.preValence,
+      postValence: _feedback.postValence,
+      mentalCalmScore: _feedback.mentalCalmScore,
+      bodyRelaxationScore: _feedback.bodyRelaxationScore,
+      focusClarityScore: _feedback.focusClarityScore,
+      pacingFit: _feedback.pacingFit,
+      outcomeTags: _feedback.outcomeTags,
+      wouldUseAgain: _feedback.wouldUseAgain,
+    );
+
+    return ResourceEvaluation(
+      resourceId: temp.resourceId,
+      resourceTitle: temp.resourceTitle,
+      category: temp.category,
+      calmPercent: temp.calmPercent,
+      neutralPercent: temp.neutralPercent,
+      activePercent: temp.activePercent,
+      durationSeconds: temp.durationSeconds,
+      averageBpm: temp.averageBpm,
+      averageStillness: temp.averageStillness,
+      starRating: temp.starRating,
+      moodShift: temp.moodShift,
+      wouldRecommend: temp.performanceScore >= 60.0 && _feedback.wouldUseAgain,
+      usedHeadband: temp.usedHeadband,
+      notes: temp.notes,
+      timestamp: temp.timestamp,
+      preValence: temp.preValence,
+      postValence: temp.postValence,
+      mentalCalmScore: temp.mentalCalmScore,
+      bodyRelaxationScore: temp.bodyRelaxationScore,
+      focusClarityScore: temp.focusClarityScore,
+      pacingFit: temp.pacingFit,
+      outcomeTags: temp.outcomeTags,
+      wouldUseAgain: temp.wouldUseAgain,
+    );
+  }
 
   Future<void> _saveAndClose() async {
     setState(() => _isSaving = true);
     try {
+      final evaluation = _buildEvaluation();
+      ref.read(resourceRankingsProvider.notifier).recordEvaluation(evaluation);
+
+      final effCalm = evaluation.effectiveCalmPercent;
+      final effNeutral = evaluation.effectiveNeutralPercent;
+      final effActive = evaluation.effectiveActivePercent;
+
       final updatedSession = widget.session.copyWith(
-        notes: 'Rating: $_userRating/5★',
+        calmPercent: effCalm,
+        neutralPercent: effNeutral,
+        activePercent: effActive,
+        notes:
+            'State: ${_feedback.preValence}➔${_feedback.postValence} | Rating: ${_feedback.starRating}/5★ | RL Score: ${evaluation.performanceScore.round()}% | Pacing: ${_feedback.pacingFit} | Tags: ${_feedback.outcomeTags.join(", ")}',
       );
       await ref.read(sessionRepositoryProvider).saveSession(updatedSession);
+
+      await ref.read(sessionRepositoryProvider).saveActivityEvaluation(
+            sessionId: updatedSession.id,
+            userId: updatedSession.userId,
+            startedAt: updatedSession.startedAt,
+            completedAt: updatedSession.completedAt,
+            evaluation: evaluation,
+          );
+
       if (mounted) {
         Navigator.of(context).pop();
       }
@@ -47,11 +141,18 @@ class _SessionResultsScreenState extends ConsumerState<SessionResultsScreen> {
   Widget build(BuildContext context) {
     final s = widget.session;
     final totalMinutes = (s.durationSeconds / 60).toStringAsFixed(1);
+    final previewEval = _buildEvaluation();
+    final nextRec = ref
+        .read(resourceRankingsProvider.notifier)
+        .recommendFromEvaluation(previewEval);
+    final displayCalm = previewEval.effectiveCalmPercent;
+    final displayNeutral = previewEval.effectiveNeutralPercent;
+    final displayActive = previewEval.effectiveActivePercent;
 
     return Scaffold(
       backgroundColor: MuseColors.spaceBackground,
       appBar: AppBar(
-        title: const Text('SESSION SUMMARY'),
+        title: const Text('Session Summary'),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -82,44 +183,51 @@ class _SessionResultsScreenState extends ConsumerState<SessionResultsScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: MuseSpacing.xl),
+              const SizedBox(height: MuseSpacing.lg),
 
               // Muse Mind State Breakdown Card
               MuseCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'MIND STATE BREAKDOWN',
-                      style: TextStyle(
-                        color: MuseColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _hasSensorTelemetry
+                              ? 'MIND STATE BREAKDOWN (MUSE 2)'
+                              : 'ESTIMATED STATE BREAKDOWN (RL MODEL)',
+                          style: const TextStyle(
+                            color: MuseColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: MuseSpacing.md),
 
-                    // Multi-segment horizontal bar (signature Muse UI)
+                    // Multi-segment horizontal bar
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: SizedBox(
                         height: 20,
                         child: Row(
                           children: [
-                            if (s.calmPercent > 0)
+                            if (displayCalm > 0)
                               Expanded(
-                                flex: (s.calmPercent * 10).round().clamp(1, 1000),
+                                flex: (displayCalm * 10).round().clamp(1, 1000),
                                 child: Container(color: MuseColors.calmGlow),
                               ),
-                            if (s.neutralPercent > 0)
+                            if (displayNeutral > 0)
                               Expanded(
-                                flex: (s.neutralPercent * 10).round().clamp(1, 1000),
+                                flex: (displayNeutral * 10).round().clamp(1, 1000),
                                 child: Container(color: MuseColors.neutralGlow),
                               ),
-                            if (s.activePercent > 0)
+                            if (displayActive > 0)
                               Expanded(
-                                flex: (s.activePercent * 10).round().clamp(1, 1000),
+                                flex: (displayActive * 10).round().clamp(1, 1000),
                                 child: Container(color: MuseColors.activeGlow),
                               ),
                           ],
@@ -134,17 +242,17 @@ class _SessionResultsScreenState extends ConsumerState<SessionResultsScreen> {
                       children: [
                         _StateMetric(
                           label: 'Calm',
-                          percent: s.calmPercent,
+                          percent: displayCalm,
                           color: MuseColors.calmGlow,
                         ),
                         _StateMetric(
                           label: 'Neutral',
-                          percent: s.neutralPercent,
+                          percent: displayNeutral,
                           color: MuseColors.neutralGlow,
                         ),
                         _StateMetric(
                           label: 'Active',
-                          percent: s.activePercent,
+                          percent: displayActive,
                           color: MuseColors.activeGlow,
                         ),
                       ],
@@ -270,75 +378,21 @@ class _SessionResultsScreenState extends ConsumerState<SessionResultsScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: MuseSpacing.xl),
+              const SizedBox(height: MuseSpacing.lg),
 
-              // Interactive Rating Card — Trains NeuroShift AI
-              MuseCard(
-                borderColor: MuseColors.amberGlow.withValues(alpha: 0.4),
-                backgroundColor: const Color(0xFF161F2E),
-                child: Column(
-                  children: [
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.auto_awesome, size: 14, color: MuseColors.amberGlow),
-                        SizedBox(width: 6),
-                        Text(
-                          'TRAIN YOUR RECOMMENDATION ENGINE',
-                          style: TextStyle(
-                            color: MuseColors.amberGlow,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: MuseSpacing.xs),
-                    const Text(
-                      'How calm and effective did this practice feel?',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: MuseColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: MuseSpacing.sm),
-
-                    // Star selector
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        final star = index + 1;
-                        final isSelected = star <= _userRating;
-                        return IconButton(
-                          icon: Icon(
-                            isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
-                            color: isSelected ? MuseColors.amberGlow : MuseColors.textMuted,
-                            size: 34,
-                          ),
-                          onPressed: () => setState(() => _userRating = star),
-                          splashRadius: 22,
-                        );
-                      }),
-                    ),
-                    Text(
-                      _userRating == 5
-                          ? 'Deeply calming & effective'
-                          : _userRating == 4
-                              ? 'Very good session'
-                              : _userRating == 3
-                                  ? 'Moderately calming'
-                                  : _userRating == 2
-                                      ? 'A bit challenging'
-                                      : 'Not effective for me',
-                      style: const TextStyle(color: MuseColors.textSecondary, fontSize: 12),
-                    ),
-                  ],
-                ),
+              // Comprehensive RL Feedback & Adaptive Recommendation Form
+              RlSessionFeedbackForm(
+                value: _feedback,
+                usedHeadband: _hasSensorTelemetry,
+                previewEvaluation: previewEval,
+                nextRecommendation: nextRec,
+                onChanged: (updated) => setState(() => _feedback = updated),
               ),
               const SizedBox(height: MuseSpacing.xl),
 
               // Save & Finish Button
               MuseButton(
-                label: 'Save & Finish Practice',
+                label: 'Save Feedback & Finish Practice',
                 width: double.infinity,
                 isLoading: _isSaving,
                 onPressed: _saveAndClose,

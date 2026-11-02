@@ -141,6 +141,9 @@ class _LiveMeditationScreenState extends ConsumerState<LiveMeditationScreen> {
       timeline: _timeline,
     );
 
+    // Auto-save session immediately so calm score & stats are never lost
+    ref.read(sessionRepositoryProvider).saveSession(session);
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => SessionResultsScreen(session: session)),
     );

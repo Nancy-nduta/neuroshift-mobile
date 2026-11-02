@@ -12,6 +12,8 @@ import '../models/resource_evaluation.dart';
 import '../models/resource_item.dart';
 import '../providers/resource_ranking_provider.dart';
 
+import '../widgets/rl_session_feedback_card.dart';
+
 class ResourceResultsScreen extends ConsumerStatefulWidget {
   final ResourceItem resource;
   final int durationSeconds;
@@ -51,131 +53,181 @@ class ResourceResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _ResourceResultsScreenState extends ConsumerState<ResourceResultsScreen> {
-  int _selectedRating = 5;
-  String _selectedMoodShift = 'Significantly Calmer';
-  final TextEditingController _notesController = TextEditingController();
+  RlFeedbackData _feedback = const RlFeedbackData();
   bool _isSaving = false;
 
-  final List<String> _moodOptions = [
-    'Significantly Calmer',
-    'Slightly Better',
-    'Neutral / Same',
-    'Distracting / Restless',
-  ];
-
   @override
-  void dispose() {
-    _notesController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    // Auto-save practice session immediately so calm score is recorded even if user exits
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoSaveInitialSession();
+    });
   }
 
-  String _getInferredMood() {
-    if (!widget.usedHeadband || (widget.calmPercent == 0 && widget.activePercent == 0)) {
-      return 'Self-Reported ($_selectedMoodShift)';
-    }
+  void _autoSaveInitialSession() {
+    try {
+      final user = ref.read(authStateProvider).value;
+      final uid = user?.uid ?? 'anonymous';
+      final now = DateTime.now();
+      final startedAt = now.subtract(Duration(seconds: widget.durationSeconds));
+      final sessionId = 'res__';
 
-    final delta = (widget.finalCalmPercent != null && widget.initialCalmPercent != null)
-        ? widget.finalCalmPercent! - widget.initialCalmPercent!
-        : 0.0;
+      final session = MeditationSession(
+        id: sessionId,
+        userId: uid,
+        mode: ExperienceMode.soundscape,
+        startedAt: startedAt,
+        completedAt: now,
+        durationSeconds: widget.durationSeconds,
+        calmPercent: widget.calmPercent,
+        neutralPercent: widget.neutralPercent,
+        activePercent: widget.activePercent,
+        calmPoints: (widget.calmPercent * widget.durationSeconds / 60).round(),
+        birdsAwarded: (widget.calmPercent / 20).floor(),
+        recoveries: widget.calmPercent >= 60 ? 3 : 1,
+        averageBpm: widget.averageBpm ?? 0.0,
+        averageRmssd: 45.0,
+        averageStillness: widget.averageStillness,
+        notes: 'Resource:  | Completed',
+      );
+      ref.read(sessionRepositoryProvider).saveSession(session);
+    } catch (_) {}
+  }
 
-    if (delta >= 20.0) {
-      return 'Tension Released into Deep Calm';
-    }
-    if (widget.calmPercent >= 70) return 'Deep Calm & Inner Peace';
-    if (widget.calmPercent >= 50) return 'Relaxed & Grounded';
-    if (widget.activePercent >= 50) return 'Restless / Active Mind';
-    return 'Balanced State';
+  ResourceEvaluation _buildCurrentEvaluation() {
+    final temp = ResourceEvaluation(
+      resourceId: widget.resource.id,
+      resourceTitle: widget.resource.title,
+      category: widget.resource.category.label,
+      calmPercent: widget.calmPercent,
+      neutralPercent: widget.neutralPercent,
+      activePercent: widget.activePercent,
+      durationSeconds: widget.durationSeconds,
+      averageBpm: widget.averageBpm,
+      averageStillness: widget.averageStillness,
+      starRating: _feedback.starRating,
+      moodShift: _feedback.derivedMoodShift,
+      wouldRecommend: _feedback.wouldUseAgain,
+      usedHeadband: widget.usedHeadband,
+      initialCalmPercent: widget.initialCalmPercent,
+      finalCalmPercent: widget.finalCalmPercent,
+      dominantBand: widget.dominantBand,
+      notes: _feedback.notes.trim().isNotEmpty ? _feedback.notes.trim() : null,
+      timestamp: DateTime.now(),
+      preValence: _feedback.preValence,
+      postValence: _feedback.postValence,
+      mentalCalmScore: _feedback.mentalCalmScore,
+      bodyRelaxationScore: _feedback.bodyRelaxationScore,
+      focusClarityScore: _feedback.focusClarityScore,
+      pacingFit: _feedback.pacingFit,
+      outcomeTags: _feedback.outcomeTags,
+      wouldUseAgain: _feedback.wouldUseAgain,
+    );
+
+    final systemDecidedRecommend =
+        temp.performanceScore >= 60.0 && _feedback.wouldUseAgain;
+
+    return ResourceEvaluation(
+      resourceId: temp.resourceId,
+      resourceTitle: temp.resourceTitle,
+      category: temp.category,
+      calmPercent: temp.calmPercent,
+      neutralPercent: temp.neutralPercent,
+      activePercent: temp.activePercent,
+      durationSeconds: temp.durationSeconds,
+      averageBpm: temp.averageBpm,
+      averageStillness: temp.averageStillness,
+      starRating: temp.starRating,
+      moodShift: temp.moodShift,
+      wouldRecommend: systemDecidedRecommend,
+      usedHeadband: temp.usedHeadband,
+      initialCalmPercent: temp.initialCalmPercent,
+      finalCalmPercent: temp.finalCalmPercent,
+      dominantBand: temp.dominantBand,
+      notes: temp.notes,
+      timestamp: temp.timestamp,
+      preValence: temp.preValence,
+      postValence: temp.postValence,
+      mentalCalmScore: temp.mentalCalmScore,
+      bodyRelaxationScore: temp.bodyRelaxationScore,
+      focusClarityScore: temp.focusClarityScore,
+      pacingFit: temp.pacingFit,
+      outcomeTags: temp.outcomeTags,
+      wouldUseAgain: temp.wouldUseAgain,
+    );
   }
 
   Future<void> _submitFeedback() async {
     setState(() => _isSaving = true);
 
-    // 1. System automatically determines whether this resource should be promoted or demoted
-    // based on user rating, mood shift, and genuine Muse 2 calm data (if available).
-    final tempEval = ResourceEvaluation(
-      resourceId: widget.resource.id,
-      resourceTitle: widget.resource.title,
-      calmPercent: widget.calmPercent,
-      neutralPercent: widget.neutralPercent,
-      activePercent: widget.activePercent,
-      durationSeconds: widget.durationSeconds,
-      averageBpm: widget.averageBpm,
-      averageStillness: widget.averageStillness,
-      starRating: _selectedRating,
-      moodShift: _selectedMoodShift,
-      wouldRecommend: true, // Will be updated by system
-      usedHeadband: widget.usedHeadband,
-      initialCalmPercent: widget.initialCalmPercent,
-      finalCalmPercent: widget.finalCalmPercent,
-      dominantBand: widget.dominantBand,
-      notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
-      timestamp: DateTime.now(),
-    );
+    final evaluation = _buildCurrentEvaluation();
+    final systemDecidedRecommend = evaluation.wouldRecommend;
 
-    final bool systemDecidedRecommend = tempEval.performanceScore >= 60.0;
-
-    final evaluation = ResourceEvaluation(
-      resourceId: widget.resource.id,
-      resourceTitle: widget.resource.title,
-      calmPercent: widget.calmPercent,
-      neutralPercent: widget.neutralPercent,
-      activePercent: widget.activePercent,
-      durationSeconds: widget.durationSeconds,
-      averageBpm: widget.averageBpm,
-      averageStillness: widget.averageStillness,
-      starRating: _selectedRating,
-      moodShift: _selectedMoodShift,
-      wouldRecommend: systemDecidedRecommend,
-      usedHeadband: widget.usedHeadband,
-      initialCalmPercent: widget.initialCalmPercent,
-      finalCalmPercent: widget.finalCalmPercent,
-      dominantBand: widget.dominantBand,
-      notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
-      timestamp: DateTime.now(),
-    );
-
-    // 2. Update recommendation rankings immediately
+    // 1. Update RL Contextual Bandit rankings immediately
     ref.read(resourceRankingsProvider.notifier).recordEvaluation(evaluation);
 
-    // 3. Persist session report to Firestore (meditation_sessions/{sessionId})
+    // 2. Persist both meditation_sessions and activity_sessions to Firestore
     final user = ref.read(authStateProvider).value;
     if (user != null) {
       try {
-        final sessionId = 'res_${DateTime.now().millisecondsSinceEpoch}';
+        final now = DateTime.now();
+        final startedAt = now.subtract(Duration(seconds: widget.durationSeconds));
+        final sessionId = 'res_${now.millisecondsSinceEpoch}';
+
+        final effCalm = evaluation.effectiveCalmPercent;
+        final effNeutral = evaluation.effectiveNeutralPercent;
+        final effActive = evaluation.effectiveActivePercent;
 
         final session = MeditationSession(
           id: sessionId,
           userId: user.uid,
           mode: ExperienceMode.soundscape,
-          startedAt: DateTime.now().subtract(Duration(seconds: widget.durationSeconds)),
-          completedAt: DateTime.now(),
+          startedAt: startedAt,
+          completedAt: now,
           durationSeconds: widget.durationSeconds,
-          calmPercent: widget.calmPercent,
-          neutralPercent: widget.neutralPercent,
-          activePercent: widget.activePercent,
-          calmPoints: (widget.calmPercent * widget.durationSeconds / 60).round(),
-          birdsAwarded: (widget.calmPercent / 20).floor(),
-          recoveries: (evaluation.deltaCalmShift > 10) ? 3 : 1,
+          calmPercent: effCalm,
+          neutralPercent: effNeutral,
+          activePercent: effActive,
+          calmPoints: (effCalm * widget.durationSeconds / 60).round(),
+          birdsAwarded: (effCalm / 20).floor(),
+          recoveries: (evaluation.deltaCalmShift > 10 || evaluation.valenceDelta >= 2) ? 3 : 1,
           averageBpm: widget.averageBpm ?? 0.0,
           averageRmssd: 45.0,
           averageStillness: widget.averageStillness,
-          notes: 'Resource: ${widget.resource.title} | Rating: $_selectedRating/5★ | Mood: $_selectedMoodShift | System Score: ${evaluation.performanceScore.toInt()}% | Headband: ${widget.usedHeadband ? "Muse 2 Connected" : "None"}',
+          notes:
+              'Resource: ${widget.resource.title} | State: ${_feedback.preValence}➔${_feedback.postValence} | RL Score: ${evaluation.performanceScore.toInt()}% | Tags: ${_feedback.outcomeTags.join(", ")} | Sensor: ${widget.usedHeadband ? "Muse 2" : "Self-Report RL"}',
         );
         await ref.read(sessionRepositoryProvider).saveSession(session);
 
-        // Update any matching therapist prescriptions with authentic Muse 2 telemetry outcome
+        // Save structured RL training record to activity_sessions
+        await ref.read(sessionRepositoryProvider).saveActivityEvaluation(
+              sessionId: sessionId,
+              userId: user.uid,
+              startedAt: startedAt,
+              completedAt: now,
+              evaluation: evaluation,
+            );
+
+        // Update any matching therapist prescriptions
         try {
-          final prescriptions = await ref.read(therapistRepositoryProvider).streamPrescriptionsForClient(user.uid).first;
+          final prescriptions = await ref
+              .read(therapistRepositoryProvider)
+              .streamPrescriptionsForClient(user.uid)
+              .first;
           final matchingPrescriptions = prescriptions
-              .where((p) => p.resourceId == widget.resource.id && p.status == PrescriptionStatus.recommended)
+              .where((p) =>
+                  p.resourceId == widget.resource.id &&
+                  p.status == PrescriptionStatus.recommended)
               .toList();
           for (final p in matchingPrescriptions) {
             await ref.read(therapistRepositoryProvider).recordPrescriptionOutcome(
                   prescriptionId: p.id,
                   completedSessionId: session.id,
-                  patientCalmScore: widget.calmPercent,
-                  patientHelpfulnessRating: _selectedRating,
-                  patientFeedback: 'Rating: $_selectedRating/5★, Mood: $_selectedMoodShift. ${_notesController.text.trim()}',
+                  patientCalmScore: effCalm,
+                  patientHelpfulnessRating: _feedback.starRating,
+                  patientFeedback:
+                      'State Shift: ${_feedback.preValence}➔${_feedback.postValence}/5, Pacing: ${_feedback.pacingFit}, Benefits: ${_feedback.outcomeTags.join(", ")}. ${_feedback.notes.trim()}',
                 );
           }
         } catch (e) {
@@ -189,25 +241,26 @@ class _ResourceResultsScreenState extends ConsumerState<ResourceResultsScreen> {
     if (!mounted) return;
     setState(() => _isSaving = false);
 
-    // Feedback notification displaying Firestore confirmation & system recommendation decision
+    final nextRec = ref
+        .read(resourceRankingsProvider.notifier)
+        .recommendFromEvaluation(evaluation);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: MuseColors.surfaceElevated,
         content: Row(
           children: [
             Icon(
-              systemDecidedRecommend ? Icons.star : Icons.arrow_downward,
-              color: systemDecidedRecommend ? MuseColors.cyanGlow : MuseColors.roseGlow,
+              systemDecidedRecommend ? Icons.auto_awesome : Icons.tune_rounded,
+              color: systemDecidedRecommend ? MuseColors.cyanGlow : MuseColors.bodyAmber,
               size: 20,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 widget.isPrescription
-                    ? 'Session saved & shared with ${widget.therapistName ?? "Practitioner"}! Results recorded in clinical dashboard.'
-                    : (systemDecidedRecommend
-                        ? 'Saved to Firestore! "${widget.resource.title}" scored ${evaluation.performanceScore.toInt()}% and stays prioritized at the top.'
-                        : 'Saved to Firestore! "${widget.resource.title}" scored ${evaluation.performanceScore.toInt()}% and was demoted down.'),
+                    ? 'Session saved & shared with ${widget.therapistName ?? "Practitioner"}!'
+                    : 'RL Model Updated (${evaluation.performanceScore.toInt()}% match)! Next recommended: "${nextRec.resource.title}".',
                 style: const TextStyle(color: MuseColors.textPrimary, fontSize: 13),
               ),
             ),
@@ -221,7 +274,11 @@ class _ResourceResultsScreenState extends ConsumerState<ResourceResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final inferredMood = _getInferredMood();
+    final previewEval = _buildCurrentEvaluation();
+    final inferredMood = previewEval.inferredMood;
+    final nextRec = ref
+        .read(resourceRankingsProvider.notifier)
+        .recommendFromEvaluation(previewEval);
 
     final deltaCalm = (widget.finalCalmPercent != null && widget.initialCalmPercent != null)
         ? widget.finalCalmPercent! - widget.initialCalmPercent!
@@ -230,7 +287,7 @@ class _ResourceResultsScreenState extends ConsumerState<ResourceResultsScreen> {
     return Scaffold(
       backgroundColor: MuseColors.spaceBackground,
       appBar: AppBar(
-        title: const Text('SESSION REPORT & FEEDBACK'),
+        title: const Text('Session Summary & Feedback'),
         centerTitle: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -277,161 +334,26 @@ class _ResourceResultsScreenState extends ConsumerState<ResourceResultsScreen> {
 
               const SizedBox(height: MuseSpacing.lg),
 
-              // 2. Question 1: How calm and effective did this practice feel? (1-5 Stars)
-              MuseCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '1. How calm and effective did this practice feel?',
-                      style: TextStyle(
-                        color: MuseColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: MuseSpacing.md),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        final star = index + 1;
-                        final isSelected = star <= _selectedRating;
-                        return IconButton(
-                          iconSize: 36,
-                          icon: Icon(
-                            isSelected ? Icons.star : Icons.star_border,
-                            color: isSelected ? MuseColors.bodyAmber : MuseColors.textMuted,
-                          ),
-                          onPressed: () => setState(() => _selectedRating = star),
-                        );
-                      }),
-                    ),
-                    Center(
-                      child: Text(
-                        '$_selectedRating of 5 Stars',
-                        style: const TextStyle(
-                          color: MuseColors.bodyAmber,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: MuseSpacing.md),
-
-              // 3. Question 2: How did this soundscape / meditation shift your mood?
-              MuseCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '2. How did this soundscape / meditation shift your mood?',
-                      style: TextStyle(
-                        color: MuseColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: MuseSpacing.md),
-                    ..._moodOptions.map((option) {
-                      final isSelected = _selectedMoodShift == option;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: InkWell(
-                          onTap: () => setState(() => _selectedMoodShift = option),
-                          borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? MuseColors.mindCyan.withValues(alpha: 0.15)
-                                  : MuseColors.cardSurface,
-                              borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
-                              border: Border.all(
-                                color: isSelected ? MuseColors.mindCyan : MuseColors.cardBorder,
-                                width: isSelected ? 1.5 : 1.0,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                                  color: isSelected ? MuseColors.mindCyan : MuseColors.textMuted,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  option,
-                                  style: TextStyle(
-                                    color: isSelected ? MuseColors.textPrimary : MuseColors.textSecondary,
-                                    fontSize: 13,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: MuseSpacing.md),
-
-              // 4. Personal Notes (Optional)
-              MuseCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Personal Notes (Optional)',
-                      style: TextStyle(color: MuseColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    const SizedBox(height: MuseSpacing.sm),
-                    TextField(
-                      controller: _notesController,
-                      maxLines: 2,
-                      style: const TextStyle(color: MuseColors.textPrimary, fontSize: 13),
-                      decoration: const InputDecoration(
-                        hintText: 'e.g., "The rain cadence helped me detach from work stress..."',
-                        hintStyle: TextStyle(color: MuseColors.textMuted, fontSize: 12),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ],
-                ),
+              // 2. Comprehensive RL Feedback & Adaptive Recommendation Form
+              RlSessionFeedbackForm(
+                value: _feedback,
+                usedHeadband: widget.usedHeadband && widget.calmPercent > 0,
+                previewEvaluation: previewEval,
+                nextRecommendation: nextRec,
+                onChanged: (updated) => setState(() => _feedback = updated),
               ),
 
               const SizedBox(height: MuseSpacing.lg),
 
-              // 5. Submit Action Button
+              // 3. Submit Action Button
               MuseButton(
                 label: widget.isPrescription
-                    ? 'Complete Prescribed Session • Go Back to Practitioner'
-                    : 'Save & Update Recommendations',
+                    ? 'Complete Prescribed Session'
+                    : 'Save Feedback & Update Recommendations',
                 icon: Icons.check,
                 isLoading: _isSaving,
                 width: double.infinity,
                 onPressed: _submitFeedback,
-              ),
-
-              const SizedBox(height: MuseSpacing.sm),
-
-              const Center(
-                child: Text(
-                  'Saved to your Cloud Firestore profile (meditation_sessions) to train your personalized recommendation rankings.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: MuseColors.textTertiary,
-                    fontSize: 11,
-                    height: 1.4,
-                  ),
-                ),
               ),
 
               const SizedBox(height: MuseSpacing.xl),

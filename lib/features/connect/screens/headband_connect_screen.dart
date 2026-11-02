@@ -17,12 +17,40 @@ class HeadbandConnectScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<HeadbandConnectScreen> createState() => _HeadbandConnectScreenState();
+  ConsumerState<HeadbandConnectScreen> createState() =>
+      _HeadbandConnectScreenState();
 }
 
 class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
   @override
   Widget build(BuildContext context) {
+    // Notify user on pairing and fit stabilization without prematurely redirecting
+    ref.listen<AsyncValue<HeadbandStatus>>(headbandStatusProvider, (prev, next) {
+      final wasConnected = prev?.value?.isConnected ?? false;
+      final isNowConnected = next.value?.isConnected ?? false;
+      if (!wasConnected && isNowConnected && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Headband connected! Place on your head to check sensor fit.'),
+            duration: Duration(seconds: 3),
+            backgroundColor: MuseColors.cardSurface,
+          ),
+        );
+      }
+
+      final wasStable = prev?.value?.fit.isStable ?? false;
+      final isNowStable = next.value?.fit.isStable ?? false;
+      if (!wasStable && isNowStable && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Good sensor fit confirmed! You are ready to begin.'),
+            duration: Duration(seconds: 2),
+            backgroundColor: MuseColors.cardSurface,
+          ),
+        );
+      }
+    });
+
     final statusAsync = ref.watch(headbandStatusProvider);
     final status = statusAsync.value ?? const HeadbandStatus();
     final devicesAsync = ref.watch(discoveredDevicesProvider);
@@ -36,192 +64,70 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
     return Scaffold(
       backgroundColor: MuseColors.spaceBackground,
       appBar: AppBar(
-        title: const Text('MUSE 2 HEADBAND'),
-        centerTitle: true,
+        title: const Text(
+          'Headband',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: MuseColors.textPrimary,
+          ),
+        ),
+        centerTitle: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           if (isConnected)
             IconButton(
               icon: const Icon(Icons.link_off, color: MuseColors.roseGlow),
-              tooltip: 'Disconnect Headband',
+              tooltip: 'Disconnect',
               onPressed: () => museService.disconnect(),
             ),
         ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(MuseSpacing.lg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: MuseSpacing.lg,
+            vertical: MuseSpacing.sm,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 1. Live 5-Sensor Muse 2 Horseshoe Fit & Stability Indicator
+              // 1. Sensor Fit Ring
               Center(
                 child: HorseshoeFitWidget(
                   fit: fit,
-                  size: 230,
+                  size: 210,
                   showLabels: true,
                 ),
               ),
               const SizedBox(height: MuseSpacing.lg),
 
-              // 2. Real-Time Hardware Signal & Stability Feedback Card
-              if (isConnected) ...[
-                if (fit.isStable) ...[
-                  MuseCard(
-                    borderColor: MuseColors.fitGood,
-                    backgroundColor: MuseColors.fitGood.withValues(alpha: 0.12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.verified, color: MuseColors.fitGood, size: 24),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'All 5 Sensors Green & Stable',
-                                style: TextStyle(
-                                  color: MuseColors.fitGood,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Electrode impedance is calibrated and noise-free. Brainwave (EEG) and heart pulse (PPG) signals are streaming cleanly.',
-                          style: TextStyle(
-                            color: MuseColors.textSecondary,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: MuseSpacing.md),
-                        MuseButton(
-                          label: widget.returnLabel != null
-                              ? 'Headband Ready • ${widget.returnLabel}'
-                              : 'Headband Ready • Go to Resources',
-                          icon: widget.returnLabel != null ? Icons.check : Icons.spa,
-                          width: double.infinity,
-                          onPressed: () {
-                            if (widget.returnLabel != null) {
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            } else {
-                              final isTherapist = ref.read(isTherapistProvider);
-                              final resourcesIndex = isTherapist ? 3 : 2;
-                              ref.read(mainNavIndexProvider.notifier).setIndex(resourcesIndex);
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else if (fit.isAllGood) ...[
-                  MuseCard(
-                    borderColor: MuseColors.amberGlow,
-                    backgroundColor: MuseColors.amberGlow.withValues(alpha: 0.10),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 26,
-                          height: 26,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            value: fit.stabilityScore > 0 ? fit.stabilityScore : null,
-                            valueColor: const AlwaysStoppedAnimation<Color>(MuseColors.fitGood),
-                            backgroundColor: MuseColors.cardBorder,
-                          ),
-                        ),
-                        const SizedBox(width: MuseSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Stabilizing Signal (${(fit.stabilityScore * 100).toInt()}%)...',
-                                style: const TextStyle(
-                                  color: MuseColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              const Text(
-                                'All 5 sensors green. Hold your head still for 2.5s to establish clean baseline readings.',
-                                style: TextStyle(
-                                  color: MuseColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else ...[
-                  MuseCard(
-                    borderColor: MuseColors.amberGlow.withValues(alpha: 0.6),
-                    backgroundColor: MuseColors.cardSurface,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.tune, color: MuseColors.amberGlow, size: 24),
-                        const SizedBox(width: MuseSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Adjusting Sensor Contact',
-                                style: TextStyle(
-                                  color: MuseColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _getFitGuidanceText(fit),
-                                style: const TextStyle(
-                                  color: MuseColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: MuseSpacing.md),
-              ],
-
-              // 3. Live Hardware Telemetry Diagnostics Card
+              // 2. Clean Status Card
               MuseCard(
-                borderColor: isConnected ? MuseColors.fitGood : MuseColors.cardBorder,
+                borderColor:
+                    isConnected ? MuseColors.fitGood : MuseColors.cardBorder,
                 child: Column(
                   children: [
                     Row(
                       children: [
                         Container(
-                          width: 44,
-                          height: 44,
+                          width: 42,
+                          height: 42,
                           decoration: BoxDecoration(
-                            color: (isConnected ? MuseColors.fitGood : MuseColors.textMuted).withValues(alpha: 0.15),
+                            color: (isConnected
+                                    ? MuseColors.fitGood
+                                    : MuseColors.textMuted)
+                                .withValues(alpha: 0.14),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
-                            color: isConnected ? MuseColors.fitGood : MuseColors.textMuted,
+                            isConnected
+                                ? Icons.bluetooth_connected
+                                : Icons.bluetooth,
+                            color: isConnected
+                                ? MuseColors.fitGood
+                                : MuseColors.textMuted,
                           ),
                         ),
                         const SizedBox(width: MuseSpacing.md),
@@ -230,23 +136,27 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                isConnected ? (status.deviceName ?? 'Muse 2 Headband') : 'Not Connected',
+                                isConnected
+                                    ? (status.deviceName ?? 'Muse 2 Connected')
+                                    : 'No Headband Connected',
                                 style: const TextStyle(
                                   color: MuseColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15.5,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 isConnected
-                                    ? (status.batteryPercent != null
-                                        ? 'Battery: ${status.batteryPercent}% • BLE Active'
-                                        : 'Connected • Awaiting Telemetry')
-                                    : (isScanning ? 'Scanning for nearby headbands...' : 'Turn on your Muse 2 to pair'),
+                                    ? (fit.isStable
+                                        ? 'Good sensor fit • Ready for practice'
+                                        : _getFitGuidanceText(fit))
+                                    : (isScanning
+                                        ? 'Looking for nearby headbands...'
+                                        : 'Turn on your Muse 2 headband to pair'),
                                 style: const TextStyle(
                                   color: MuseColors.textSecondary,
-                                  fontSize: 13,
+                                  fontSize: 12.5,
                                 ),
                               ),
                             ],
@@ -255,23 +165,25 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
                       ],
                     ),
                     if (isConnected) ...[
-                      const Divider(color: MuseColors.cardBorder, height: 24),
+                      const Divider(color: MuseColors.cardBorder, height: 22),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _TelemetryStat(
                             label: 'Battery',
-                            value: status.batteryPercent != null ? '${status.batteryPercent}%' : '--',
+                            value: status.batteryPercent != null
+                                ? '${status.batteryPercent}%'
+                                : '--',
                             icon: Icons.battery_charging_full,
-                            color: status.batteryPercent != null ? MuseColors.fitGood : MuseColors.textMuted,
+                            color: MuseColors.fitGood,
                           ),
                           _TelemetryStat(
-                            label: 'Signal',
-                            value: fit.isStable
-                                ? 'Stable'
-                                : (fit.isAllGood ? 'Stabilizing' : '${fit.overallFitPercentage.toInt()}%'),
-                            icon: fit.isStable ? Icons.verified : Icons.sensors,
-                            color: fit.isStable ? MuseColors.fitGood : MuseColors.cyanGlow,
+                            label: 'Fit',
+                            value: '${fit.overallFitPercentage.toInt()}%',
+                            icon: Icons.sensors,
+                            color: fit.isStable
+                                ? MuseColors.fitGood
+                                : MuseColors.cyanGlow,
                           ),
                           _TelemetryStat(
                             label: 'Stillness',
@@ -281,43 +193,63 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: MuseSpacing.md),
+                      MuseButton(
+                        label: fit.isStable
+                            ? (widget.returnLabel ?? 'Continue to Resources')
+                            : 'Place Headband on Head to Continue',
+                        icon: fit.isStable
+                            ? Icons.check_circle_outline
+                            : Icons.sensors,
+                        variant: fit.isStable
+                            ? MuseButtonVariant.primary
+                            : MuseButtonVariant.outline,
+                        width: double.infinity,
+                        onPressed: fit.isStable ? _proceedToDestination : null,
+                      ),
+                      if (!fit.isStable) ...[
+                        const SizedBox(height: 6),
+                        TextButton(
+                          onPressed: _proceedToDestination,
+                          child: const Text(
+                            'Skip fit check & continue',
+                            style: TextStyle(
+                              color: MuseColors.textMuted,
+                              fontSize: 12,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
               ),
-              const SizedBox(height: MuseSpacing.lg),
+              const SizedBox(height: MuseSpacing.md),
 
               if (status.errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(MuseSpacing.md),
-                  decoration: BoxDecoration(
-                    color: MuseColors.roseGlow.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(MuseSpacing.radiusMd),
-                    border: Border.all(color: MuseColors.roseGlow.withValues(alpha: 0.5)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded, color: MuseColors.roseGlow),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          status.errorMessage!,
-                          style: const TextStyle(color: MuseColors.roseGlow, fontSize: 13),
-                        ),
-                      ),
-                    ],
+                Padding(
+                  padding: const EdgeInsets.only(bottom: MuseSpacing.md),
+                  child: Text(
+                    status.errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: MuseColors.roseGlow, fontSize: 12.5),
                   ),
                 ),
-                const SizedBox(height: MuseSpacing.lg),
               ],
 
-              // 4. Scan BLE Action Button
+              // 3. Scan Action Button
               MuseButton(
-                label: isScanning ? 'Searching...' : (isConnected ? 'Rescan Devices' : 'Scan for Muse 2'),
+                label: isScanning
+                    ? 'Stop Scanning'
+                    : (isConnected ? 'Scan Again' : 'Find My Headband'),
                 icon: isScanning ? null : Icons.search,
                 isLoading: isScanning,
                 width: double.infinity,
-                variant: isConnected ? MuseButtonVariant.outline : MuseButtonVariant.primary,
+                variant: isConnected
+                    ? MuseButtonVariant.outline
+                    : MuseButtonVariant.primary,
                 onPressed: () {
                   if (isScanning) {
                     museService.stopScan();
@@ -326,19 +258,18 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
                   }
                 },
               ),
-              const SizedBox(height: MuseSpacing.xl),
+              const SizedBox(height: MuseSpacing.lg),
 
-              // 5. Discovered Headbands List
+              // 4. Discovered Headbands List
               if (devices.isNotEmpty && !isConnected) ...[
-                Align(
+                const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'DISCOVERED HEADBANDS (${devices.length})',
-                    style: const TextStyle(
-                      color: MuseColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
+                    'Nearby Headbands',
+                    style: TextStyle(
+                      color: MuseColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -346,81 +277,61 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
                 ...devices.map((res) {
                   final name = res.device.platformName.isNotEmpty
                       ? res.device.platformName
-                      : (res.advertisementData.advName.isNotEmpty ? res.advertisementData.advName : 'Muse Headband');
-                  final rssi = res.rssi;
+                      : (res.advertisementData.advName.isNotEmpty
+                          ? res.advertisementData.advName
+                          : 'Muse Headband');
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: MuseSpacing.sm),
                     child: MuseCard(
-                      padding: const EdgeInsets.symmetric(horizontal: MuseSpacing.md, vertical: MuseSpacing.sm),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: MuseSpacing.md, vertical: 10),
                       child: Row(
                         children: [
-                          const Icon(Icons.headset, color: MuseColors.cyanGlow),
-                          const SizedBox(width: MuseSpacing.md),
+                          const Icon(Icons.headphones,
+                              color: MuseColors.cyanGlow, size: 20),
+                          const SizedBox(width: 12),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    color: MuseColors.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  'Signal: $rssi dBm • ${res.device.remoteId.str}',
-                                  style: const TextStyle(
-                                    color: MuseColors.textMuted,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              name,
+                              style: const TextStyle(
+                                color: MuseColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                           MuseButton(
                             label: 'Connect',
                             height: 36,
-                            onPressed: () => museService.connectToDevice(res.device),
+                            onPressed: () =>
+                                museService.connectToDevice(res.device),
                           ),
                         ],
                       ),
                     ),
                   );
                 }),
-                const SizedBox(height: MuseSpacing.xl),
+                const SizedBox(height: MuseSpacing.md),
               ],
 
-              // 6. Fitting Tips Card
+              // 5. Simple Fit Tip Card
               MuseCard(
-                backgroundColor: MuseColors.cardSurface.withValues(alpha: 0.5),
-                child: const Column(
+                padding: const EdgeInsets.all(14),
+                child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.lightbulb_outline, color: MuseColors.amberGlow, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Fitting Tips for Best Signal',
-                          style: TextStyle(
-                            color: MuseColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
+                    Icon(Icons.lightbulb_outline,
+                        color: MuseColors.amberGlow, size: 18),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Tip: Tuck hair behind your ears and rest the band snug across the middle of your forehead.',
+                        style: TextStyle(
+                          color: MuseColors.textSecondary,
+                          fontSize: 12,
+                          height: 1.4,
                         ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      '• Ear Sensors (TP9, TP10): Tuck hair completely behind your ears so the conductive rubber ear clips touch bare skin.\n'
-                      '• Forehead Sensors (AF7, FPz, AF8): Position flat and snug midway above your eyebrows.\n'
-                      '• Center Pulse/Ref (FPz): Must make flush contact with forehead skin to measure heart rate pulse and ground EEG.\n'
-                      '• If contact is stubborn, moisten sensors slightly with a damp cloth or water.',
-                      style: TextStyle(
-                        color: MuseColors.textSecondary,
-                        fontSize: 13,
-                        height: 1.5,
                       ),
                     ),
                   ],
@@ -434,16 +345,25 @@ class _HeadbandConnectScreenState extends ConsumerState<HeadbandConnectScreen> {
     );
   }
 
+  void _proceedToDestination() {
+    final isTherapist = ref.read(isTherapistProvider);
+    final resourcesTabIndex = isTherapist ? 3 : 2;
+    ref.read(mainNavIndexProvider.notifier).setIndex(resourcesTabIndex);
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
+
   String _getFitGuidanceText(HorseshoeFit fit) {
     final needed = <String>[];
-    if (fit.tp9 != FitQuality.good) needed.add('Left Ear');
-    if (fit.af7 != FitQuality.good) needed.add('Left Forehead');
-    if (fit.fpz != FitQuality.good) needed.add('Center Forehead');
-    if (fit.af8 != FitQuality.good) needed.add('Right Forehead');
-    if (fit.tp10 != FitQuality.good) needed.add('Right Ear');
+    if (fit.tp9 != FitQuality.good) needed.add('left ear');
+    if (fit.af7 != FitQuality.good) needed.add('left forehead');
+    if (fit.fpz != FitQuality.good) needed.add('center forehead');
+    if (fit.af8 != FitQuality.good) needed.add('right forehead');
+    if (fit.tp10 != FitQuality.good) needed.add('right ear');
 
-    if (needed.isEmpty) return 'Hold still to complete stability calibration.';
-    return 'Adjust ${needed.join(', ')}: ensure firm contact with bare skin.';
+    if (needed.isEmpty) return 'Hold still for a moment to lock signal...';
+    return 'Gently adjust ${needed.join(', ')} for clearer contact.';
   }
 }
 

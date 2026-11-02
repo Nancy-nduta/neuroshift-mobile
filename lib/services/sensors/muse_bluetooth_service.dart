@@ -34,6 +34,12 @@ class MuseBluetoothService {
   StreamSubscription<List<ScanResult>>? _scanSub;
   final List<StreamSubscription<List<int>>> _charSubs = [];
   Timer? _keepAliveTimer;
+  Timer? _watchdogTimer;
+  Timer? _reconnectTimer;
+  BluetoothDevice? _lastDevice;
+  bool _isExplicitDisconnect = false;
+  int _reconnectAttempts = 0;
+  int _lastPacketsCount = 0;
 
   // Real-time packet telemetry
   int _packetsReceived = 0;
@@ -149,6 +155,10 @@ class MuseBluetoothService {
 
   Future<void> connectToDevice(BluetoothDevice device) async {
     await stopScan();
+    _isExplicitDisconnect = false;
+    _lastDevice = device;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
 
     _updateStatus(_currentStatus.copyWith(
       connectionState: ConnectionStateEnum.connecting,
@@ -175,7 +185,11 @@ class MuseBluetoothService {
       _connStateSub?.cancel();
       _connStateSub = device.connectionState.listen((state) {
         if (state == BluetoothConnectionState.disconnected) {
-          _handleDisconnect();
+          if (!_isExplicitDisconnect && _lastDevice != null) {
+            _scheduleAutoReconnect();
+          } else {
+            _handleDisconnect();
+          }
         }
       });
 
@@ -283,12 +297,36 @@ class MuseBluetoothService {
       await Future.delayed(const Duration(milliseconds: 50));
       await _sendCommand('d');
 
-      // Start Keep-Alive Heartbeat every 3 seconds
+      _reconnectAttempts = 0;
+
+      // Start Keep-Alive Heartbeat: send 'd' (Resume/Keep Streaming) every 8 seconds
       _keepAliveTimer?.cancel();
-      _keepAliveTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _keepAliveTimer = Timer.periodic(const Duration(seconds: 8), (_) {
         if (_connectedDevice != null && _controlChar != null) {
-          _sendCommand('k');
+          _sendCommand('d');
         }
+      });
+
+      // Stream watchdog: if no packets received for 5 seconds while streaming, nudge the stream with 'd'
+      _lastPacketsCount = _packetsReceived;
+      _watchdogTimer?.cancel();
+      _watchdogTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (_connectedDevice != null && _controlChar != null && _currentStatus.isStreaming) {
+          if (_packetsReceived == _lastPacketsCount) {
+            debugPrint('No new Muse packets in 5s. Nudging stream with "d"...');
+            _sendCommand('d');
+          }
+          _lastPacketsCount = _packetsReceived;
+        }
+      });
+
+      // Periodic battery & status query every 30 seconds
+      Timer.periodic(const Duration(seconds: 30), (timer) {
+        if (_connectedDevice == null || _controlChar == null || _isExplicitDisconnect) {
+          timer.cancel();
+          return;
+        }
+        _sendCommand('s');
       });
 
       _updateStatus(_currentStatus.copyWith(
@@ -317,8 +355,11 @@ class MuseBluetoothService {
   }
 
   Future<void> disconnect() async {
-    _keepAliveTimer?.cancel();
-    _keepAliveTimer = null;
+    _isExplicitDisconnect = true;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _reconnectAttempts = 0;
+    _lastDevice = null;
 
     if (_controlChar != null) {
       try {
@@ -326,13 +367,7 @@ class MuseBluetoothService {
       } catch (_) {}
     }
 
-    for (final s in _charSubs) {
-      await s.cancel();
-    }
-    _charSubs.clear();
-
-    await _connStateSub?.cancel();
-    _connStateSub = null;
+    _cleanupActiveStreaming(clearDevice: true);
 
     if (_connectedDevice != null) {
       try {
@@ -344,16 +379,68 @@ class MuseBluetoothService {
     _handleDisconnect();
   }
 
-  void _handleDisconnect() {
+  void _cleanupActiveStreaming({bool clearDevice = true}) {
     _keepAliveTimer?.cancel();
     _keepAliveTimer = null;
+    _watchdogTimer?.cancel();
+    _watchdogTimer = null;
     _stabilityTicker?.cancel();
     _stabilityTicker = null;
     _stabilityStartTime = null;
     _stabilityScore = 0.0;
     _isStable = false;
 
+    for (final s in _charSubs) {
+      s.cancel();
+    }
+    _charSubs.clear();
+
+    if (clearDevice) {
+      _connStateSub?.cancel();
+      _connStateSub = null;
+      _connectedDevice = null;
+      _controlChar = null;
+    }
+  }
+
+  void _scheduleAutoReconnect() {
+    _cleanupActiveStreaming(clearDevice: false);
+    if (_isExplicitDisconnect || _lastDevice == null) return;
+
+    if (_reconnectAttempts >= 5) {
+      debugPrint('Exceeded max reconnect attempts (5). Setting status to disconnected.');
+      _handleDisconnect();
+      return;
+    }
+
+    _reconnectAttempts++;
+    final delaySeconds = math.min(1 << (_reconnectAttempts - 1), 6);
+    debugPrint('Unexpected Muse disconnect! Auto-reconnecting attempt $_reconnectAttempts in ${delaySeconds}s...');
+
+    _updateStatus(_currentStatus.copyWith(
+      connectionState: ConnectionStateEnum.connecting,
+      errorMessage: 'Reconnecting to ${_lastDevice!.platformName.isNotEmpty ? _lastDevice!.platformName : "Muse"} (attempt $_reconnectAttempts/5)...',
+    ));
+
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () async {
+      if (_isExplicitDisconnect || _lastDevice == null) return;
+      try {
+        await connectToDevice(_lastDevice!);
+      } catch (e) {
+        debugPrint('Auto-reconnect attempt failed: $e');
+        if (!_isExplicitDisconnect) {
+          _scheduleAutoReconnect();
+        }
+      }
+    });
+  }
+
+  void _handleDisconnect() {
+    _cleanupActiveStreaming(clearDevice: true);
+
     _packetsReceived = 0;
+    _lastPacketsCount = 0;
     _tp9Fit = FitQuality.none;
     _af7Fit = FitQuality.none;
     _fpzFit = FitQuality.none;
@@ -660,6 +747,8 @@ class MuseBluetoothService {
   }
 
   Future<void> dispose() async {
+    _reconnectTimer?.cancel();
+    _watchdogTimer?.cancel();
     await disconnect();
     await _statusController.close();
     await _readingController.close();
